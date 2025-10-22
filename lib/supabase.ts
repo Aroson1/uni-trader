@@ -1,14 +1,18 @@
-'use client';
+"use client";
 
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createBrowserClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: "pkce",
+  },
+});
 
 // Keep all your Database types exactly as they are
 export type Database = {
@@ -69,8 +73,8 @@ export type Database = {
           creator_id: string;
           price: number;
           currency: string;
-          status: 'available' | 'sold' | 'auction' | 'draft' | 'burned';
-          sale_type: 'fixed' | 'auction' | 'bid' | 'not_for_sale';
+          status: "available" | "sold" | "auction" | "draft" | "burned";
+          sale_type: "fixed" | "auction" | "bid" | "not_for_sale";
           category: string;
           tags: string[];
           metadata: Record<string, any>;
@@ -98,8 +102,8 @@ export type Database = {
           creator_id: string;
           price?: number;
           currency?: string;
-          status?: 'available' | 'sold' | 'auction' | 'draft' | 'burned';
-          sale_type?: 'fixed' | 'auction' | 'bid' | 'not_for_sale';
+          status?: "available" | "sold" | "auction" | "draft" | "burned";
+          sale_type?: "fixed" | "auction" | "bid" | "not_for_sale";
           category?: string;
           tags?: string[];
           metadata?: Record<string, any>;
@@ -127,8 +131,8 @@ export type Database = {
           creator_id?: string;
           price?: number;
           currency?: string;
-          status?: 'available' | 'sold' | 'auction' | 'draft' | 'burned';
-          sale_type?: 'fixed' | 'auction' | 'bid' | 'not_for_sale';
+          status?: "available" | "sold" | "auction" | "draft" | "burned";
+          sale_type?: "fixed" | "auction" | "bid" | "not_for_sale";
           category?: string;
           tags?: string[];
           metadata?: Record<string, any>;
@@ -155,7 +159,13 @@ export type Database = {
           seller_id: string;
           amount: number;
           currency: string;
-          status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed' | 'refunded';
+          status:
+            | "pending"
+            | "processing"
+            | "completed"
+            | "cancelled"
+            | "failed"
+            | "refunded";
           payment_method: string;
           transaction_hash: string | null;
           gas_fee: number | null;
@@ -174,7 +184,13 @@ export type Database = {
           seller_id: string;
           amount: number;
           currency?: string;
-          status?: 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed' | 'refunded';
+          status?:
+            | "pending"
+            | "processing"
+            | "completed"
+            | "cancelled"
+            | "failed"
+            | "refunded";
           payment_method?: string;
           transaction_hash?: string | null;
           gas_fee?: number | null;
@@ -193,7 +209,13 @@ export type Database = {
           seller_id?: string;
           amount?: number;
           currency?: string;
-          status?: 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed' | 'refunded';
+          status?:
+            | "pending"
+            | "processing"
+            | "completed"
+            | "cancelled"
+            | "failed"
+            | "refunded";
           payment_method?: string;
           transaction_hash?: string | null;
           gas_fee?: number | null;
@@ -213,7 +235,13 @@ export type Database = {
           bidder_id: string;
           amount: number;
           currency: string;
-          status: 'active' | 'accepted' | 'rejected' | 'outbid' | 'withdrawn' | 'expired';
+          status:
+            | "active"
+            | "accepted"
+            | "rejected"
+            | "outbid"
+            | "withdrawn"
+            | "expired";
           expires_at: string | null;
           message: string | null;
           created_at: string;
@@ -224,7 +252,13 @@ export type Database = {
           bidder_id: string;
           amount: number;
           currency?: string;
-          status?: 'active' | 'accepted' | 'rejected' | 'outbid' | 'withdrawn' | 'expired';
+          status?:
+            | "active"
+            | "accepted"
+            | "rejected"
+            | "outbid"
+            | "withdrawn"
+            | "expired";
           expires_at?: string | null;
           message?: string | null;
           created_at?: string;
@@ -235,7 +269,13 @@ export type Database = {
           bidder_id?: string;
           amount?: number;
           currency?: string;
-          status?: 'active' | 'accepted' | 'rejected' | 'outbid' | 'withdrawn' | 'expired';
+          status?:
+            | "active"
+            | "accepted"
+            | "rejected"
+            | "outbid"
+            | "withdrawn"
+            | "expired";
           expires_at?: string | null;
           message?: string | null;
           created_at?: string;

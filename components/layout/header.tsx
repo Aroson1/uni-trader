@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useState } from 'react';
-import { useAuthStore, useThemeStore } from '@/lib/store';
-import { Button } from '@/components/ui/button';
+import Link from "next/link";
+import { useState } from "react";
+import { useAuthStore, useThemeStore } from "@/lib/store";
+import { Button } from "@/components/ui/button";
 import {
   Search,
   Wallet,
@@ -16,7 +16,7 @@ import {
   Settings,
   Bell,
   MessageSquare,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +24,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
   const { user, profile, signOut } = useAuthStore();
@@ -34,10 +34,10 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Explore', href: '/explore' },
-    { name: 'Activity', href: '/activity' },
-    { name: 'Community', href: '/community' },
+    { name: "Home", href: "/" },
+    { name: "Explore", href: "/explore" },
+    { name: "Activity", href: "/activity" },
+    { name: "Community", href: "/community" },
   ];
 
   return (
@@ -49,7 +49,9 @@ export function Header() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center">
                 <span className="text-white font-bold text-xl">U</span>
               </div>
-              <span className="text-xl font-bold hidden sm:block">Unitrader</span>
+              <span className="text-xl font-bold hidden sm:block">
+                Unitrader
+              </span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
@@ -104,7 +106,7 @@ export function Header() {
                   className="rounded-full hidden sm:flex"
                   onClick={toggleTheme}
                 >
-                  {theme === 'dark' ? (
+                  {theme === "dark" ? (
                     <Sun className="w-5 h-5" />
                   ) : (
                     <Moon className="w-5 h-5" />
@@ -117,11 +119,11 @@ export function Header() {
                       <Avatar className="w-8 h-8">
                         <AvatarImage src={profile?.avatar_url || undefined} />
                         <AvatarFallback>
-                          {profile?.name?.charAt(0) || 'U'}
+                          {profile?.name?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
                       <span className="hidden sm:block text-sm font-medium">
-                        {profile?.name || 'User'}
+                        {profile?.name || "User"}
                       </span>
                     </button>
                   </DropdownMenuTrigger>
@@ -129,7 +131,10 @@ export function Header() {
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href={`/profile/${user.id}`} className="flex items-center gap-2">
+                      <Link
+                        href={`/profile/${user.id}`}
+                        className="flex items-center gap-2"
+                      >
                         <User className="w-4 h-4" />
                         Profile
                       </Link>
@@ -141,13 +146,19 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/settings" className="flex items-center gap-2">
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-2"
+                      >
                         <Settings className="w-4 h-4" />
                         Settings
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut} className="flex items-center gap-2 text-red-600">
+                    <DropdownMenuItem
+                      onClick={signOut}
+                      className="flex items-center gap-2 text-red-600"
+                    >
                       <LogOut className="w-4 h-4" />
                       Sign Out
                     </DropdownMenuItem>
@@ -162,14 +173,18 @@ export function Header() {
                   className="rounded-full"
                   onClick={toggleTheme}
                 >
-                  {theme === 'dark' ? (
+                  {theme === "dark" ? (
                     <Sun className="w-5 h-5" />
                   ) : (
                     <Moon className="w-5 h-5" />
                   )}
                 </Button>
 
-                <Button variant="ghost" asChild className="hidden sm:inline-flex">
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="hidden sm:inline-flex"
+                >
                   <Link href="/auth/login">Sign In</Link>
                 </Button>
 

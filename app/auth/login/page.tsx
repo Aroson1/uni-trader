@@ -1,30 +1,36 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const redirectedFrom = searchParams.get('redirectedFrom');
-  const error = searchParams.get('error');
+  const redirectedFrom = searchParams.get("redirectedFrom");
+  const error = searchParams.get("error");
 
   // Show error message if there's an error from callback
   useEffect(() => {
     if (error) {
       const errorMessages = {
-        callback_failed: 'Authentication failed. Please try again.',
-        no_session: 'No session found. Please sign in again.',
-        no_user: 'User not found. Please try signing in again.',
-        timeout: 'Authentication timed out. Please try again.',
+        callback_failed: "Authentication failed. Please try again.",
+        no_session: "No session found. Please sign in again.",
+        no_user: "User not found. Please try signing in again.",
+        timeout: "Authentication timed out. Please try again.",
+        oauth_error: "OAuth authentication failed. Please try again.",
+        exchange_failed: "Failed to complete authentication. Please try again.",
+        session_error: "Session error occurred. Please try again.",
+        sign_out: "You have been signed out. Please sign in again.",
       };
-      
-      const message = errorMessages[error as keyof typeof errorMessages] || 'An error occurred during sign in.';
+
+      const message =
+        errorMessages[error as keyof typeof errorMessages] ||
+        "An error occurred during sign in.";
       toast.error(message);
     }
   }, [error]);
@@ -34,20 +40,20 @@ export default function LoginPage() {
 
     try {
       // Construct the callback URL with the redirect parameter
-      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
       if (redirectedFrom) {
-        callbackUrl.searchParams.set('redirectedFrom', redirectedFrom);
+        callbackUrl.searchParams.set("redirectedFrom", redirectedFrom);
       }
 
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: callbackUrl.toString(),
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
       });
 
       if (error) {
@@ -56,7 +62,7 @@ export default function LoginPage() {
 
       // The redirect will happen automatically
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+      toast.error(error.message || "Failed to sign in");
       setLoading(false);
     }
   };
@@ -101,16 +107,16 @@ export default function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            {loading ? 'Signing in...' : 'Continue with Google'}
+            {loading ? "Signing in..." : "Continue with Google"}
           </Button>
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          By signing in, you agree to our{' '}
+          By signing in, you agree to our{" "}
           <Link href="/terms" className="text-primary hover:underline">
             Terms of Service
-          </Link>{' '}
-          and{' '}
+          </Link>{" "}
+          and{" "}
           <Link href="/privacy" className="text-primary hover:underline">
             Privacy Policy
           </Link>

@@ -1,5 +1,5 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
         remove(name: string, options: CookieOptions) {
           request.cookies.set({
             name,
-            value: '',
+            value: "",
             ...options,
           });
           response = NextResponse.next({
@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
           });
           response.cookies.set({
             name,
-            value: '',
+            value: "",
             ...options,
           });
         },
@@ -56,26 +56,34 @@ export async function middleware(request: NextRequest) {
 
   // Use getSession() to properly refresh tokens
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const user = session?.user;
 
   // Protected routes that require authentication
-  const protectedRoutes = ['/profile', '/wallet', '/orders', '/admin', '/create'];
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const protectedRoutes = [
+    "/profile",
+    "/wallet",
+    "/orders",
+    "/admin",
+    "/create",
+  ];
+  const isProtectedRoute = protectedRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   );
 
   // Redirect to login if trying to access protected route without auth
   if (isProtectedRoute && !user) {
-    const redirectUrl = new URL('/auth/login', request.url);
-    redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname);
+    const redirectUrl = new URL("/auth/login", request.url);
+    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect authenticated users away from login page
-  if (user && request.nextUrl.pathname === '/auth/login') {
-    const redirectedFrom = request.nextUrl.searchParams.get('redirectedFrom');
-    const redirectTo = redirectedFrom || '/';
+  if (user && request.nextUrl.pathname === "/auth/login") {
+    const redirectedFrom = request.nextUrl.searchParams.get("redirectedFrom");
+    const redirectTo = redirectedFrom || "/";
     return NextResponse.redirect(new URL(redirectTo, request.url));
   }
 
@@ -84,6 +92,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
