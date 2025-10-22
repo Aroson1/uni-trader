@@ -1,16 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { NFTCard } from '@/components/nft/nft-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+
+interface NFT {
+  id: string;
+  title: string;
+  media_url: string;
+  price: number;
+  likes_count?: number;
+  views?: number;
+  sale_type: 'fixed' | 'auction';
+  auction_end_time?: string | null;
+  status: 'available' | 'sold' | 'draft';
+  category: string;
+  creator: {
+    id: string;
+    name: string;
+    avatar_url?: string | null;
+  };
+  owner: {
+    id: string;
+    name: string;
+    avatar_url?: string | null;
+  };
+}
 
 const categories = ['All', 'Art', 'Music', 'Domain Names', 'Virtual Worlds', 'Trading Cards', 'Collectibles', 'Sports', 'Utility'];
 const statusFilters = ['Buy Now', 'On Auctions', 'Has Offers'];
-const chains = ['Ethereum', 'Polygon', 'Klaytn'];
+const sortOptions = ['Latest', 'Price: Low to High', 'Price: High to Low', 'Most Liked', 'Most Viewed'];
 
 const mockNFTs = [
   {
@@ -99,10 +125,128 @@ const mockNFTs = [
 ];
 
 export default function ExplorePage() {
+  const searchParams = useSearchParams();
+  const [nfts, setNfts] = useState<NFT[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
-  const [selectedChains, setSelectedChains] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('Latest');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  useEffect(() => {
+    // Get URL params
+    const filter = searchParams.get('filter');
+    const category = searchParams.get('category');
+    
+    if (filter === 'auction') {
+      setSelectedStatus(['On Auctions']);
+    }
+    if (category) {
+      setSelectedCategory(category);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetchNFTs(true); // Reset pagination when filters change
+  }, [selectedCategory, selectedStatus, searchQuery, sortBy]);
+
+  const fetchNFTs = async (reset = false) => {
+    try {
+      setLoading(true);
+      const currentPage = reset ? 1 : page;
+      const limit = 12;
+
+      let query = supabase
+        .from('nfts')
+        .select(`
+          id,
+          title,
+          media_url,
+          price,
+          sale_type,
+          auction_end_time,
+          status,
+          category,
+          views,
+          creator:creator_id(id, name, avatar_url),
+          owner:owner_id(id, name, avatar_url),
+          likes_count:likes(count)
+        `)
+        .eq('status', 'available');
+
+      // Apply category filter
+      if (selectedCategory !== 'All') {
+        query = query.eq('category', selectedCategory);
+      }
+
+      // Apply status filters
+      if (selectedStatus.includes('On Auctions')) {
+        query = query.eq('sale_type', 'auction');
+      } else if (selectedStatus.includes('Buy Now')) {
+        query = query.eq('sale_type', 'fixed');
+      }
+
+      // Apply search
+      if (searchQuery.trim()) {
+        query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'Price: Low to High':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'Price: High to Low':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'Most Liked':
+          query = query.order('likes_count', { ascending: false });
+          break;
+        case 'Most Viewed':
+          query = query.order('views', { ascending: false });
+          break;
+        default:
+          query = query.order('created_at', { ascending: false });
+      }
+
+      // Apply pagination
+      const offset = (currentPage - 1) * limit;
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching NFTs:', error);
+        toast.error('Failed to load NFTs');
+        return;
+      }
+
+      const transformedNFTs = (data || []).map(nft => ({
+        ...nft,
+        creator: Array.isArray(nft.creator) ? nft.creator[0] : nft.creator,
+        owner: Array.isArray(nft.owner) ? nft.owner[0] : nft.owner,
+        likes_count: Array.isArray(nft.likes_count) ? nft.likes_count.length : 0,
+      }));
+
+      if (reset) {
+        setNfts(transformedNFTs);
+        setPage(2);
+      } else {
+        setNfts(prev => [...prev, ...transformedNFTs]);
+        setPage(prev => prev + 1);
+      }
+
+      setHasMore(transformedNFTs.length === limit);
+
+    } catch (error) {
+      console.error('Error fetching NFTs:', error);
+      toast.error('Failed to load NFTs');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleStatus = (status: string) => {
     setSelectedStatus(prev =>
@@ -110,10 +254,10 @@ export default function ExplorePage() {
     );
   };
 
-  const toggleChain = (chain: string) => {
-    setSelectedChains(prev =>
-      prev.includes(chain) ? prev.filter(c => c !== chain) : [...prev, chain]
-    );
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      fetchNFTs(false);
+    }
   };
 
   return (
@@ -178,17 +322,18 @@ export default function ExplorePage() {
             </div>
 
             <div className="glass rounded-2xl p-6">
-              <h3 className="font-semibold mb-4">Chains</h3>
+              <h3 className="font-semibold mb-4">Sort By</h3>
               <div className="space-y-2">
-                {chains.map((chain) => (
-                  <label key={chain} className="flex items-center gap-2 cursor-pointer">
+                {sortOptions.map((option) => (
+                  <label key={option} className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="checkbox"
-                      checked={selectedChains.includes(chain)}
-                      onChange={() => toggleChain(chain)}
+                      type="radio"
+                      name="sort"
+                      checked={sortBy === option}
+                      onChange={() => setSortBy(option)}
                       className="rounded border-border"
                     />
-                    <span className="text-sm">{chain}</span>
+                    <span className="text-sm">{option}</span>
                   </label>
                 ))}
               </div>
@@ -207,22 +352,68 @@ export default function ExplorePage() {
                   className="pl-12 input-field"
                 />
               </div>
-              <Button variant="outline" className="btn-secondary">
-                Sort by
-              </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockNFTs.map((nft) => (
-                <NFTCard key={nft.id} {...nft} />
-              ))}
-            </div>
+            {loading && nfts.length === 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="glass rounded-2xl p-4 animate-pulse">
+                    <div className="aspect-square bg-muted rounded-xl mb-4"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-muted rounded w-3/4"></div>
+                      <div className="h-3 bg-muted rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : nfts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {nfts.map((nft) => (
+                    <NFTCard 
+                      key={nft.id} 
+                      id={nft.id}
+                      title={nft.title}
+                      media_url={nft.media_url}
+                      price={nft.price}
+                      likes={nft.likes_count || 0}
+                      views={nft.views || 0}
+                      sale_type={nft.sale_type}
+                      auction_end_time={nft.auction_end_time}
+                      status={nft.status === 'available' ? 'available' : nft.status as 'sold' | 'draft'}
+                      creator={nft.creator}
+                      owner={nft.owner}
+                    />
+                  ))}
+                </div>
 
-            <div className="mt-12 flex justify-center">
-              <Button variant="outline" className="btn-secondary" size="lg">
-                Load More
-              </Button>
-            </div>
+                {hasMore && (
+                  <div className="mt-12 flex justify-center">
+                    <Button 
+                      variant="outline" 
+                      className="btn-secondary" 
+                      size="lg"
+                      onClick={loadMore}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        'Load More'
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground text-lg mb-4">No NFTs found</p>
+                <p className="text-muted-foreground">Try adjusting your search or filters</p>
+              </div>
+            )}
           </main>
         </div>
       </div>

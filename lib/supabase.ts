@@ -1,10 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+'use client';
+
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createBrowserClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
 
+// Keep all your Database types exactly as they are
 export type Database = {
   public: {
     Tables: {
@@ -12,30 +18,42 @@ export type Database = {
         Row: {
           id: string;
           name: string;
+          email: string | null;
           bio: string | null;
           avatar_url: string | null;
           banner_url: string | null;
           wallet_address: string | null;
+          is_verified: boolean;
+          social_links: Record<string, any>;
+          preferences: Record<string, any>;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id: string;
           name?: string;
+          email?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
           banner_url?: string | null;
           wallet_address?: string | null;
+          is_verified?: boolean;
+          social_links?: Record<string, any>;
+          preferences?: Record<string, any>;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
+          email?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
           banner_url?: string | null;
           wallet_address?: string | null;
+          is_verified?: boolean;
+          social_links?: Record<string, any>;
+          preferences?: Record<string, any>;
           created_at?: string;
           updated_at?: string;
         };
@@ -46,17 +64,27 @@ export type Database = {
           title: string;
           description: string;
           media_url: string;
+          thumbnail_url: string | null;
           owner_id: string;
           creator_id: string;
           price: number;
-          status: 'available' | 'sold' | 'auction' | 'draft';
-          sale_type: 'fixed' | 'auction' | 'bid';
+          currency: string;
+          status: 'available' | 'sold' | 'auction' | 'draft' | 'burned';
+          sale_type: 'fixed' | 'auction' | 'bid' | 'not_for_sale';
           category: string;
           tags: string[];
           metadata: Record<string, any>;
+          attributes: Record<string, any>[];
           views: number;
           likes: number;
+          royalty_percentage: number;
           auction_end_time: string | null;
+          auction_start_time: string | null;
+          minimum_bid: number | null;
+          is_featured: boolean;
+          blockchain: string;
+          token_id: string | null;
+          contract_address: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -65,17 +93,27 @@ export type Database = {
           title: string;
           description?: string;
           media_url: string;
+          thumbnail_url?: string | null;
           owner_id: string;
           creator_id: string;
           price?: number;
-          status?: 'available' | 'sold' | 'auction' | 'draft';
-          sale_type?: 'fixed' | 'auction' | 'bid';
+          currency?: string;
+          status?: 'available' | 'sold' | 'auction' | 'draft' | 'burned';
+          sale_type?: 'fixed' | 'auction' | 'bid' | 'not_for_sale';
           category?: string;
           tags?: string[];
           metadata?: Record<string, any>;
+          attributes?: Record<string, any>[];
           views?: number;
           likes?: number;
+          royalty_percentage?: number;
           auction_end_time?: string | null;
+          auction_start_time?: string | null;
+          minimum_bid?: number | null;
+          is_featured?: boolean;
+          blockchain?: string;
+          token_id?: string | null;
+          contract_address?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -84,17 +122,27 @@ export type Database = {
           title?: string;
           description?: string;
           media_url?: string;
+          thumbnail_url?: string | null;
           owner_id?: string;
           creator_id?: string;
           price?: number;
-          status?: 'available' | 'sold' | 'auction' | 'draft';
-          sale_type?: 'fixed' | 'auction' | 'bid';
+          currency?: string;
+          status?: 'available' | 'sold' | 'auction' | 'draft' | 'burned';
+          sale_type?: 'fixed' | 'auction' | 'bid' | 'not_for_sale';
           category?: string;
           tags?: string[];
           metadata?: Record<string, any>;
+          attributes?: Record<string, any>[];
           views?: number;
           likes?: number;
+          royalty_percentage?: number;
           auction_end_time?: string | null;
+          auction_start_time?: string | null;
+          minimum_bid?: number | null;
+          is_featured?: boolean;
+          blockchain?: string;
+          token_id?: string | null;
+          contract_address?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -106,9 +154,18 @@ export type Database = {
           buyer_id: string;
           seller_id: string;
           amount: number;
-          status: 'pending' | 'completed' | 'cancelled';
+          currency: string;
+          status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed' | 'refunded';
+          payment_method: string;
+          transaction_hash: string | null;
+          gas_fee: number | null;
+          platform_fee: number | null;
+          royalty_fee: number | null;
+          total_amount: number | null;
+          payment_data: Record<string, any>;
           created_at: string;
           updated_at: string;
+          completed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -116,9 +173,18 @@ export type Database = {
           buyer_id: string;
           seller_id: string;
           amount: number;
-          status?: 'pending' | 'completed' | 'cancelled';
+          currency?: string;
+          status?: 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed' | 'refunded';
+          payment_method?: string;
+          transaction_hash?: string | null;
+          gas_fee?: number | null;
+          platform_fee?: number | null;
+          royalty_fee?: number | null;
+          total_amount?: number | null;
+          payment_data?: Record<string, any>;
           created_at?: string;
           updated_at?: string;
+          completed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -126,9 +192,18 @@ export type Database = {
           buyer_id?: string;
           seller_id?: string;
           amount?: number;
-          status?: 'pending' | 'completed' | 'cancelled';
+          currency?: string;
+          status?: 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed' | 'refunded';
+          payment_method?: string;
+          transaction_hash?: string | null;
+          gas_fee?: number | null;
+          platform_fee?: number | null;
+          royalty_fee?: number | null;
+          total_amount?: number | null;
+          payment_data?: Record<string, any>;
           created_at?: string;
           updated_at?: string;
+          completed_at?: string | null;
         };
       };
       bids: {
@@ -137,7 +212,10 @@ export type Database = {
           nft_id: string;
           bidder_id: string;
           amount: number;
-          status: 'active' | 'accepted' | 'rejected' | 'outbid';
+          currency: string;
+          status: 'active' | 'accepted' | 'rejected' | 'outbid' | 'withdrawn' | 'expired';
+          expires_at: string | null;
+          message: string | null;
           created_at: string;
         };
         Insert: {
@@ -145,7 +223,10 @@ export type Database = {
           nft_id: string;
           bidder_id: string;
           amount: number;
-          status?: 'active' | 'accepted' | 'rejected' | 'outbid';
+          currency?: string;
+          status?: 'active' | 'accepted' | 'rejected' | 'outbid' | 'withdrawn' | 'expired';
+          expires_at?: string | null;
+          message?: string | null;
           created_at?: string;
         };
         Update: {
@@ -153,7 +234,10 @@ export type Database = {
           nft_id?: string;
           bidder_id?: string;
           amount?: number;
-          status?: 'active' | 'accepted' | 'rejected' | 'outbid';
+          currency?: string;
+          status?: 'active' | 'accepted' | 'rejected' | 'outbid' | 'withdrawn' | 'expired';
+          expires_at?: string | null;
+          message?: string | null;
           created_at?: string;
         };
       };
@@ -163,6 +247,8 @@ export type Database = {
           participant_one_id: string;
           participant_two_id: string;
           order_id: string | null;
+          nft_id: string | null;
+          status: 'active' | 'archived' | 'blocked';
           last_message_at: string;
           created_at: string;
         };
@@ -171,6 +257,8 @@ export type Database = {
           participant_one_id: string;
           participant_two_id: string;
           order_id?: string | null;
+          nft_id?: string | null;
+          status?: 'active' | 'archived' | 'blocked';
           last_message_at?: string;
           created_at?: string;
         };
@@ -179,6 +267,8 @@ export type Database = {
           participant_one_id?: string;
           participant_two_id?: string;
           order_id?: string | null;
+          nft_id?: string | null;
+          status?: 'active' | 'archived' | 'blocked';
           last_message_at?: string;
           created_at?: string;
         };
@@ -189,9 +279,12 @@ export type Database = {
           conversation_id: string;
           from_id: string;
           to_id: string;
-          text: string;
-          attachments: any[];
+          content: string;
+          message_type: 'text' | 'image' | 'file' | 'system';
+          attachments: Record<string, any>[];
+          metadata: Record<string, any>;
           read_at: string | null;
+          edited_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -199,9 +292,12 @@ export type Database = {
           conversation_id: string;
           from_id: string;
           to_id: string;
-          text: string;
-          attachments?: any[];
+          content: string;
+          message_type?: 'text' | 'image' | 'file' | 'system';
+          attachments?: Record<string, any>[];
+          metadata?: Record<string, any>;
           read_at?: string | null;
+          edited_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -209,39 +305,80 @@ export type Database = {
           conversation_id?: string;
           from_id?: string;
           to_id?: string;
-          text?: string;
-          attachments?: any[];
+          content?: string;
+          message_type?: 'text' | 'image' | 'file' | 'system';
+          attachments?: Record<string, any>[];
+          metadata?: Record<string, any>;
           read_at?: string | null;
+          edited_at?: string | null;
           created_at?: string;
         };
       };
-      qr_records: {
+      notifications: {
         Row: {
           id: string;
-          order_id: string;
-          payload_hash: string;
-          generated_at: string;
-          scanned_at: string | null;
-          scanned_by_ip: string | null;
-          status: 'generated' | 'scanned' | 'verified';
+          user_id: string;
+          type: string;
+          title: string;
+          message: string;
+          data: Record<string, any>;
+          read_at: string | null;
+          action_url: string | null;
+          created_at: string;
         };
         Insert: {
           id?: string;
-          order_id: string;
-          payload_hash: string;
-          generated_at?: string;
-          scanned_at?: string | null;
-          scanned_by_ip?: string | null;
-          status?: 'generated' | 'scanned' | 'verified';
+          user_id: string;
+          type: string;
+          title: string;
+          message: string;
+          data?: Record<string, any>;
+          read_at?: string | null;
+          action_url?: string | null;
+          created_at?: string;
         };
         Update: {
           id?: string;
-          order_id?: string;
-          payload_hash?: string;
-          generated_at?: string;
-          scanned_at?: string | null;
-          scanned_by_ip?: string | null;
-          status?: 'generated' | 'scanned' | 'verified';
+          user_id?: string;
+          type?: string;
+          title?: string;
+          message?: string;
+          data?: Record<string, any>;
+          read_at?: string | null;
+          action_url?: string | null;
+          created_at?: string;
+        };
+      };
+      activities: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          description: string;
+          metadata: Record<string, any>;
+          nft_id: string | null;
+          order_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          description: string;
+          metadata?: Record<string, any>;
+          nft_id?: string | null;
+          order_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: string;
+          description?: string;
+          metadata?: Record<string, any>;
+          nft_id?: string | null;
+          order_id?: string | null;
+          created_at?: string;
         };
       };
       likes: {
@@ -260,6 +397,113 @@ export type Database = {
           nft_id?: string;
           created_at?: string;
         };
+      };
+      follows: {
+        Row: {
+          follower_id: string;
+          following_id: string;
+          created_at: string;
+        };
+        Insert: {
+          follower_id: string;
+          following_id: string;
+          created_at?: string;
+        };
+        Update: {
+          follower_id?: string;
+          following_id?: string;
+          created_at?: string;
+        };
+      };
+      collections: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          cover_image_url: string | null;
+          creator_id: string;
+          is_public: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string;
+          cover_image_url?: string | null;
+          creator_id: string;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          cover_image_url?: string | null;
+          creator_id?: string;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+    Views: {
+      nft_with_creator: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          media_url: string;
+          owner_id: string;
+          creator_id: string;
+          price: number;
+          status: string;
+          creator_name: string;
+          creator_avatar: string | null;
+          creator_verified: boolean;
+          created_at: string;
+        };
+      };
+      nft_with_owner: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          media_url: string;
+          owner_id: string;
+          creator_id: string;
+          price: number;
+          status: string;
+          owner_name: string;
+          owner_avatar: string | null;
+          owner_verified: boolean;
+          created_at: string;
+        };
+      };
+    };
+    Functions: {
+      create_notification: {
+        Args: {
+          p_user_id: string;
+          p_type: string;
+          p_title: string;
+          p_message: string;
+          p_data?: Record<string, any>;
+          p_action_url?: string;
+        };
+        Returns: string;
+      };
+      log_activity: {
+        Args: {
+          p_user_id: string;
+          p_type: string;
+          p_description: string;
+          p_metadata?: Record<string, any>;
+          p_nft_id?: string;
+          p_order_id?: string;
+        };
+        Returns: string;
       };
     };
   };
