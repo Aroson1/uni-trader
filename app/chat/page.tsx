@@ -36,8 +36,8 @@ interface Conversation {
     avatar_url?: string;
   };
   lastMessage?: {
-    text: string;
-    from_id: string;
+    content: string;
+    sender_id: string;
     created_at: string;
   };
   unreadCount: number;
@@ -106,7 +106,7 @@ export default function ChatPage() {
           // Get last message
           const { data: lastMessage } = await supabase
             .from('messages')
-            .select('text, from_id, created_at')
+            .select('content, sender_id, created_at')
             .eq('conversation_id', conv.id)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -117,8 +117,8 @@ export default function ChatPage() {
             .from('messages')
             .select('*', { count: 'exact', head: true })
             .eq('conversation_id', conv.id)
-            .eq('to_id', userId)
-            .is('read_at', null);
+            .eq('sender_id', otherUserId)
+            .eq('read', false);
 
           return {
             ...conv,
@@ -244,8 +244,8 @@ export default function ChatPage() {
                             
                             {conversation.lastMessage ? (
                               <p className="text-sm text-muted-foreground truncate">
-                                {conversation.lastMessage.from_id === currentUser?.id ? 'You: ' : ''}
-                                {conversation.lastMessage.text}
+                                {conversation.lastMessage.sender_id === currentUser?.id ? 'You: ' : ''}
+                                {conversation.lastMessage.content}
                               </p>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">

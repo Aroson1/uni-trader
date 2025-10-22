@@ -16,11 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft,
   Send, 
-  Paperclip,
-  Image as ImageIcon,
   User,
-  MoreVertical,
-  ExternalLink
+  MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
@@ -28,35 +25,22 @@ import { formatDistance } from 'date-fns';
 interface Message {
   id: string;
   conversation_id: string;
-  from_id: string;
-  to_id: string;
-  text: string;
-  attachments: any[];
-  read_at?: string;
+  sender_id: string;
+  content: string;
+  read: boolean;
   created_at: string;
 }
 
 interface Conversation {
   id: string;
-  participant_one_id: string;
-  participant_two_id: string;
-  order_id?: string;
+  participant1_id: string;
+  participant2_id: string;
   last_message_at: string;
   created_at: string;
   otherUser: {
     id: string;
     name: string;
     avatar_url?: string;
-  };
-  order?: {
-    id: string;
-    amount: number;
-    status: string;
-    nft: {
-      id: string;
-      title: string;
-      media_url: string;
-    };
   };
 }
 
@@ -69,7 +53,6 @@ interface ChatConversationProps {
 export default function ChatConversationPage({ params }: ChatConversationProps) {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -114,9 +97,8 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
         .from('conversations')
         .select(`
           id,
-          participant_one_id,
-          participant_two_id,
-          order_id,
+          participant1_id,
+          participant2_id,
           last_message_at,
           created_at
         `)
@@ -126,15 +108,15 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
       if (convError) throw convError;
 
       // Check if user is participant
-      if (conversationData.participant_one_id !== userId && 
-          conversationData.participant_two_id !== userId) {
+      if (conversationData.participant1_id !== userId && 
+          conversationData.participant2_id !== userId) {
         router.push('/chat');
         return;
       }
 
-      const otherUserId = conversationData.participant_one_id === userId 
-        ? conversationData.participant_two_id 
-        : conversationData.participant_one_id;
+      const otherUserId = conversationData.participant1_id === userId 
+        ? conversationData.participant2_id 
+        : conversationData.participant1_id;
 
       // Get other user's profile
       const { data: otherUser } = await supabase
@@ -144,28 +126,11 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
         .single();
 
       // Get order details if exists
-      let orderData = null;
-      if (conversationData.order_id) {
-        const { data } = await supabase
-          .from('orders')
-          .select(`
-            id,
-            amount,
-            status,
-            nft:nfts(id, title, media_url)
-          `)
-          .eq('id', conversationData.order_id)
-          .single();
-        orderData = data;
-      }
-
+      // Note: Order functionality not implemented in current schema
+      
       setConversation({
         ...conversationData,
         otherUser: otherUser || { id: otherUserId, name: 'Unknown User' },
-        order: orderData ? {
-          ...orderData,
-          nft: Array.isArray(orderData.nft) ? orderData.nft[0] : orderData.nft
-        } : undefined,
       });
 
       // Load messages
@@ -179,13 +144,13 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
 
       setMessages(messagesData || []);
 
-      // Mark messages as read
+      // Mark messages as read        
       await supabase
         .from('messages')
-        .update({ read_at: new Date().toISOString() })
+        .update({ read: true })
         .eq('conversation_id', conversationId)
-        .eq('to_id', userId)
-        .is('read_at', null);
+        .eq('sender_id', otherUserId)
+        .eq('read', false);
 
       // Set up realtime subscription
       const channel = supabase
@@ -202,10 +167,10 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
             setMessages(prev => [...prev, payload.new as Message]);
             
             // Mark as read if it's not from current user
-            if (payload.new.from_id !== userId) {
+            if (payload.new.sender_id !== userId) {
               supabase
                 .from('messages')
-                .update({ read_at: new Date().toISOString() })
+                .update({ read: true })
                 .eq('id', payload.new.id);
             }
           }
@@ -243,10 +208,8 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
         .from('messages')
         .insert({
           conversation_id: conversation.id,
-          from_id: currentUser.id,
-          to_id: conversation.otherUser.id,
-          text: newMessage.trim(),
-          attachments: [],
+          sender_id: currentUser.id,
+          content: newMessage.trim(),
         });
 
       if (error) throw error;
@@ -384,13 +347,8 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h2 className="font-semibold">{conversation.otherUser.name}</h2>
-                      {conversation.order && (
-                        <Badge variant="outline">Order Chat</Badge>
-                      )}
+                      {/* Status indicator can be added here later */}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Active now
-                    </p>
                   </div>
                   
                   <Button variant="ghost" size="sm">
@@ -400,45 +358,12 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
               </CardHeader>
             </Card>
 
-            {/* Order Context (if exists) */}
-            {conversation.order && (
-              <Card className="mb-4">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
-                      <Image
-                        src={conversation.order.nft.media_url}
-                        alt={conversation.order.nft.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">{conversation.order.nft.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Order #{conversation.order.id.slice(0, 8)} • {conversation.order.amount} ETH
-                      </p>
-                      <Badge variant={conversation.order.status === 'completed' ? 'default' : 'secondary'}>
-                        {conversation.order.status}
-                      </Badge>
-                    </div>
-                    <Link href={`/orders/${conversation.order.id}`}>
-                      <Button variant="outline" size="sm">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        View Order
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Messages */}
             <Card className="mb-4">
               <CardContent className="p-0">
                 <div className="h-96 overflow-y-auto p-4 space-y-4">
                   {messages.map((message) => {
-                    const isOwn = message.from_id === currentUser?.id;
+                    const isOwn = message.sender_id === currentUser?.id;
                     
                     return (
                       <div
@@ -450,32 +375,7 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted'
                         } rounded-lg p-3`}>
-                          {/* Handle attachments */}
-                          {message.attachments && message.attachments.length > 0 && (
-                            <div className="mb-2">
-                              {message.attachments.map((attachment: any, index: number) => (
-                                <div key={index}>
-                                  {attachment.type === 'image' ? (
-                                    <div className="relative w-full h-32 rounded overflow-hidden mb-2">
-                                      <Image
-                                        src={attachment.url}
-                                        alt={attachment.name}
-                                        fill
-                                        className="object-cover"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2 p-2 border rounded mb-2">
-                                      <Paperclip className="w-4 h-4" />
-                                      <span className="text-sm truncate">{attachment.name}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          
-                          <p className="text-sm">{message.text}</p>
+                          <p className="text-sm">{message.content}</p>
                           <p className={`text-xs mt-1 ${
                             isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
                           }`}>
@@ -494,16 +394,6 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
             <Card>
               <CardContent className="p-4">
                 <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={sending}
-                  >
-                    <Paperclip className="w-4 h-4" />
-                  </Button>
-                  
                   <Input
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
@@ -520,14 +410,6 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
                     <Send className="w-4 h-4" />
                   </Button>
                 </form>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,application/pdf,.doc,.docx,.txt"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
               </CardContent>
             </Card>
           </div>

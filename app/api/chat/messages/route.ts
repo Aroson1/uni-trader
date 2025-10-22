@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
@@ -29,7 +28,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Verify user is part of the conversation
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await supabaseServer
       .from('conversations')
       .select('participant1_id, participant2_id')
       .eq('id', conversationId)
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch messages
-    const { data: messages, error } = await supabase
+    const { data: messages, error } = await supabaseServer
       .from('messages')
       .select(`
         *,
@@ -69,12 +68,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Mark messages as read for the current user
-    await supabase
+    const otherParticipantId = conversation.participant1_id === user.id 
+      ? conversation.participant2_id 
+      : conversation.participant1_id;
+    
+    await supabaseServer
       .from('messages')
-      .update({ read_at: new Date().toISOString() })
+      .update({ read: true })
       .eq('conversation_id', conversationId)
-      .eq('recipient_id', user.id)
-      .is('read_at', null);
+      .eq('sender_id', otherParticipantId)
+      .eq('read', false);
 
     return NextResponse.json({
       messages: (messages || []).reverse(), // Reverse to show oldest first
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
     const messageData = await request.json();
 
     // Validate required fields
-    const required = ['conversation_id', 'recipient_id', 'content'];
+    const required = ['conversation_id', 'content'];
     for (const field of required) {
       if (!messageData[field]) {
         return NextResponse.json(
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify conversation exists and user is part of it
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await supabaseServer
       .from('conversations')
       .select('participant1_id, participant2_id')
       .eq('id', messageData.conversation_id)
@@ -136,16 +139,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create message
-    const { data: message, error } = await supabase
+    const { data: message, error } = await supabaseServer
       .from('messages')
       .insert({
         conversation_id: messageData.conversation_id,
         sender_id: user.id,
-        recipient_id: messageData.recipient_id,
         content: messageData.content,
-        message_type: messageData.message_type || 'text',
-        attachment_url: messageData.attachment_url || null,
-        created_at: new Date().toISOString(),
       })
       .select(`
         *,
@@ -162,11 +161,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Update conversation last message
-    await supabase
+    await supabaseServer
       .from('conversations')
       .update({ 
-        last_message_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        last_message_at: new Date().toISOString()
       })
       .eq('id', messageData.conversation_id);
 

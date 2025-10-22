@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user's conversations
-    const { data: conversations, error } = await supabase
+    const { data: conversations, error } = await supabaseServer
       .from('conversations')
       .select(`
         *,
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if conversation already exists
-    const { data: existingConv } = await supabase
+    const { data: existingConv } = await supabaseServer
       .from('conversations')
       .select('id')
       .or(`and(participant1_id.eq.${user.id},participant2_id.eq.${participant_id}),and(participant1_id.eq.${participant_id},participant2_id.eq.${user.id})`)
@@ -103,13 +102,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new conversation
-    const { data: conversation, error } = await supabase
+    const { data: conversation, error } = await supabaseServer
       .from('conversations')
       .insert({
         participant1_id: user.id,
         participant2_id: participant_id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        last_message_at: new Date().toISOString(),
       })
       .select('id')
       .single();

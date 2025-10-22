@@ -441,10 +441,10 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                 Share
               </Button>
               {currentUser && currentUser.id !== nft.owner.id && (
-                <Link href={`/chat/new?user=${nft.owner.id}`}>
+                <Link href={`/chat/new?user=${nft.owner.id}&nft=${nft.id}`}>
                   <Button variant="outline">
                     <MessageCircle className="w-4 h-4 mr-2" />
-                    Message
+                    Chat with Seller
                   </Button>
                 </Link>
               )}

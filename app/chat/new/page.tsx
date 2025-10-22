@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Header } from '@/components/layout/header';
@@ -26,13 +27,26 @@ interface UserProfile {
   wallet_address?: string;
 }
 
+interface NFTData {
+  id: string;
+  title: string;
+  media_url: string;
+  price: number;
+  owner: {
+    id: string;
+    name: string;
+  };
+}
+
 export default function NewChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetUserId = searchParams.get('user');
+  const nftId = searchParams.get('nft');
   
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
+  const [nftData, setNftData] = useState<NFTData | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -83,6 +97,33 @@ export default function NewChatPage() {
           
           setTargetUser(targetProfile);
         }
+
+        // Get NFT data if specified
+        if (nftId) {
+          const { data: nftInfo } = await supabase
+            .from('nfts')
+            .select(`
+              id,
+              title,
+              media_url,
+              price,
+              owner:owner_id(id, name)
+            `)
+            .eq('id', nftId)
+            .single();
+          
+          if (nftInfo) {
+            setNftData({
+              ...nftInfo,
+              owner: Array.isArray(nftInfo.owner) ? nftInfo.owner[0] : nftInfo.owner
+            });
+            
+            // Set default message if we have NFT context
+            if (!message) {
+              setMessage(`Hi! I'm interested in your NFT "${nftInfo.title}". Is it still available?`);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error initializing chat:', error);
         toast.error('Failed to load chat');
@@ -93,7 +134,7 @@ export default function NewChatPage() {
     };
 
     initializeChat();
-  }, [router, targetUserId]);
+  }, [router, targetUserId, nftId]);
 
   const handleStartConversation = async () => {
     if (!targetUser || !currentUser || !message.trim()) {
@@ -129,7 +170,6 @@ export default function NewChatPage() {
         },
         body: JSON.stringify({
           conversation_id,
-          recipient_id: targetUser.id,
           content: message.trim(),
         }),
       });
@@ -226,6 +266,32 @@ export default function NewChatPage() {
                           'NFT Trader'
                         }
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* NFT Context */}
+                {nftData && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 className="font-medium text-blue-900 mb-3">About this NFT</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                        <Image
+                          src={nftData.media_url}
+                          alt={nftData.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{nftData.title}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {nftData.price} ETH
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          Owner: {nftData.owner.name}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}

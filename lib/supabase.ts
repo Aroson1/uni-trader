@@ -244,31 +244,22 @@ export type Database = {
       conversations: {
         Row: {
           id: string;
-          participant_one_id: string;
-          participant_two_id: string;
-          order_id: string | null;
-          nft_id: string | null;
-          status: 'active' | 'archived' | 'blocked';
+          participant1_id: string;
+          participant2_id: string;
           last_message_at: string;
           created_at: string;
         };
         Insert: {
           id?: string;
-          participant_one_id: string;
-          participant_two_id: string;
-          order_id?: string | null;
-          nft_id?: string | null;
-          status?: 'active' | 'archived' | 'blocked';
+          participant1_id: string;
+          participant2_id: string;
           last_message_at?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
-          participant_one_id?: string;
-          participant_two_id?: string;
-          order_id?: string | null;
-          nft_id?: string | null;
-          status?: 'active' | 'archived' | 'blocked';
+          participant1_id?: string;
+          participant2_id?: string;
           last_message_at?: string;
           created_at?: string;
         };
@@ -277,40 +268,25 @@ export type Database = {
         Row: {
           id: string;
           conversation_id: string;
-          from_id: string;
-          to_id: string;
+          sender_id: string;
           content: string;
-          message_type: 'text' | 'image' | 'file' | 'system';
-          attachments: Record<string, any>[];
-          metadata: Record<string, any>;
-          read_at: string | null;
-          edited_at: string | null;
+          read: boolean;
           created_at: string;
         };
         Insert: {
           id?: string;
           conversation_id: string;
-          from_id: string;
-          to_id: string;
+          sender_id: string;
           content: string;
-          message_type?: 'text' | 'image' | 'file' | 'system';
-          attachments?: Record<string, any>[];
-          metadata?: Record<string, any>;
-          read_at?: string | null;
-          edited_at?: string | null;
+          read?: boolean;
           created_at?: string;
         };
         Update: {
           id?: string;
           conversation_id?: string;
-          from_id?: string;
-          to_id?: string;
+          sender_id?: string;
           content?: string;
-          message_type?: 'text' | 'image' | 'file' | 'system';
-          attachments?: Record<string, any>[];
-          metadata?: Record<string, any>;
-          read_at?: string | null;
-          edited_at?: string | null;
+          read?: boolean;
           created_at?: string;
         };
       };
