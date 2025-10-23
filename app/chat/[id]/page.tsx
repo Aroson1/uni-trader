@@ -1,26 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft,
-  Send, 
-  User,
-  MoreVertical
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { formatDistance } from 'date-fns';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Send, User, MoreVertical } from "lucide-react";
+import { toast } from "sonner";
+import { formatDistance } from "date-fns";
 
 interface Message {
   id: string;
@@ -50,139 +45,150 @@ interface ChatConversationProps {
   };
 }
 
-export default function ChatConversationPage({ params }: ChatConversationProps) {
+export default function ChatConversationPage({
+  params,
+}: ChatConversationProps) {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        router.push('/auth/login');
+        router.push("/auth/login");
         return;
       }
-      
+
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
         .single();
-      
+
       setCurrentUser(profile);
       loadConversationData(user.id, params.id);
     };
-    
+
     checkUser();
   }, [router, params.id]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const loadConversationData = async (userId: string, conversationId: string) => {
+  const loadConversationData = async (
+    userId: string,
+    conversationId: string
+  ) => {
     setLoading(true);
-    
+
     try {
       // Load conversation details
       const { data: conversationData, error: convError } = await supabase
-        .from('conversations')
-        .select(`
+        .from("conversations")
+        .select(
+          `
           id,
           participant1_id,
           participant2_id,
           last_message_at,
           created_at
-        `)
-        .eq('id', conversationId)
+        `
+        )
+        .eq("id", conversationId)
         .single();
 
       if (convError) throw convError;
 
       // Check if user is participant
-      if (conversationData.participant1_id !== userId && 
-          conversationData.participant2_id !== userId) {
-        router.push('/chat');
+      if (
+        conversationData.participant1_id !== userId &&
+        conversationData.participant2_id !== userId
+      ) {
+        router.push("/chat");
         return;
       }
 
-      const otherUserId = conversationData.participant1_id === userId 
-        ? conversationData.participant2_id 
-        : conversationData.participant1_id;
+      const otherUserId =
+        conversationData.participant1_id === userId
+          ? conversationData.participant2_id
+          : conversationData.participant1_id;
 
       // Get other user's profile
       const { data: otherUser } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .eq('id', otherUserId)
+        .from("profiles")
+        .select("id, name, avatar_url")
+        .eq("id", otherUserId)
         .single();
 
-      // Get order details if exists
-      // Note: Order functionality not implemented in current schema
-      
       setConversation({
         ...conversationData,
-        otherUser: otherUser || { id: otherUserId, name: 'Unknown User' },
+        otherUser: otherUser || { id: otherUserId, name: "Unknown User" },
       });
 
       // Load messages
       const { data: messagesData, error: msgError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
 
       if (msgError) throw msgError;
 
       setMessages(messagesData || []);
 
-      // Mark messages as read        
+      // Mark messages as read
       await supabase
-        .from('messages')
+        .from("messages")
         .update({ read: true })
-        .eq('conversation_id', conversationId)
-        .eq('sender_id', otherUserId)
-        .eq('read', false);
+        .eq("conversation_id", conversationId)
+        .eq("sender_id", otherUserId)
+        .eq("read", false);
 
       // Set up realtime subscription
       const channel = supabase
         .channel(`conversation-${conversationId}`)
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            setMessages(prev => [...prev, payload.new as Message]);
-            
+            console.log("Real-time message received:", payload);
+            setMessages((prev) => [...prev, payload.new as Message]);
+
             // Mark as read if it's not from current user
             if (payload.new.sender_id !== userId) {
               supabase
-                .from('messages')
+                .from("messages")
                 .update({ read: true })
-                .eq('id', payload.new.id);
+                .eq("id", payload.new.id);
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log("Real-time subscription status:", status);
+        });
 
       setRealtimeChannel(channel);
-      
     } catch (error: any) {
-      toast.error('Failed to load conversation');
-      console.error('Error loading conversation:', error);
-      router.push('/chat');
+      toast.error("Failed to load conversation");
+      console.error("Error loading conversation:", error);
+      router.push("/chat");
     } finally {
       setLoading(false);
     }
@@ -191,6 +197,7 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
   useEffect(() => {
     return () => {
       if (realtimeChannel) {
+        console.log("Cleaning up real-time channel");
         supabase.removeChannel(realtimeChannel);
       }
     };
@@ -198,88 +205,30 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || !conversation || !currentUser) return;
 
     setSending(true);
 
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversation.id,
-          sender_id: currentUser.id,
-          content: newMessage.trim(),
-        });
+      const { error } = await supabase.from("messages").insert({
+        conversation_id: conversation.id,
+        sender_id: currentUser.id,
+        content: newMessage.trim(),
+      });
 
       if (error) throw error;
 
       // Update conversation last_message_at
       await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ last_message_at: new Date().toISOString() })
-        .eq('id', conversation.id);
+        .eq("id", conversation.id);
 
-      setNewMessage('');
-      
+      setNewMessage("");
     } catch (error: any) {
-      toast.error('Failed to send message');
-      console.error('Error sending message:', error);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !conversation || !currentUser) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File must be less than 10MB');
-      return;
-    }
-
-    setSending(true);
-
-    try {
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `chat-attachments/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('media')
-        .getPublicUrl(filePath);
-
-      // Send message with attachment
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversation.id,
-          from_id: currentUser.id,
-          to_id: conversation.otherUser.id,
-          text: file.name,
-          attachments: [{
-            type: file.type.startsWith('image/') ? 'image' : 'file',
-            url: data.publicUrl,
-            name: file.name,
-            size: file.size,
-          }],
-        });
-
-      if (error) throw error;
-
-      toast.success('File uploaded successfully');
-      
-    } catch (error: any) {
-      toast.error('Failed to upload file');
-      console.error('Error uploading file:', error);
+      toast.error("Failed to send message");
+      console.error("Error sending message:", error);
     } finally {
       setSending(false);
     }
@@ -319,7 +268,7 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -336,21 +285,22 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
                       <ArrowLeft className="w-4 h-4" />
                     </Button>
                   </Link>
-                  
+
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={conversation.otherUser.avatar_url} />
                     <AvatarFallback>
                       <User className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h2 className="font-semibold">{conversation.otherUser.name}</h2>
-                      {/* Status indicator can be added here later */}
+                      <h2 className="font-semibold">
+                        {conversation.otherUser.name}
+                      </h2>
                     </div>
                   </div>
-                  
+
                   <Button variant="ghost" size="sm">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
@@ -364,22 +314,34 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
                 <div className="h-96 overflow-y-auto p-4 space-y-4">
                   {messages.map((message) => {
                     const isOwn = message.sender_id === currentUser?.id;
-                    
+
                     return (
                       <div
                         key={message.id}
-                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${
+                          isOwn ? "justify-end" : "justify-start"
+                        }`}
                       >
-                        <div className={`max-w-xs lg:max-w-md ${
-                          isOwn 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted'
-                        } rounded-lg p-3`}>
+                        <div
+                          className={`max-w-xs lg:max-w-md ${
+                            isOwn
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          } rounded-lg p-3`}
+                        >
                           <p className="text-sm">{message.content}</p>
-                          <p className={`text-xs mt-1 ${
-                            isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                          }`}>
-                            {formatDistance(new Date(message.created_at), new Date(), { addSuffix: true })}
+                          <p
+                            className={`text-xs mt-1 ${
+                              isOwn
+                                ? "text-primary-foreground/70"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {formatDistance(
+                              new Date(message.created_at),
+                              new Date(),
+                              { addSuffix: true }
+                            )}
                           </p>
                         </div>
                       </div>
@@ -393,7 +355,10 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
             {/* Message Input */}
             <Card>
               <CardContent className="p-4">
-                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <form
+                  onSubmit={handleSendMessage}
+                  className="flex items-center gap-2"
+                >
                   <Input
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
@@ -401,9 +366,9 @@ export default function ChatConversationPage({ params }: ChatConversationProps) 
                     className="flex-1"
                     disabled={sending}
                   />
-                  
-                  <Button 
-                    type="submit" 
+
+                  <Button
+                    type="submit"
                     disabled={!newMessage.trim() || sending}
                     size="sm"
                   >

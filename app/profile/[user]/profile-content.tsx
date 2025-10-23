@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { NFTCard } from '@/components/nft/nft-card';
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { NFTCard } from "@/components/nft/nft-card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   User,
   Edit3,
@@ -37,10 +37,10 @@ import {
   Palette,
   Share2,
   Copy,
-  Check
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { formatDistance } from 'date-fns';
+  Check,
+} from "lucide-react";
+import { toast } from "sonner";
+import { formatDistance } from "date-fns";
 
 interface ProfileContentProps {
   user: {
@@ -103,9 +103,9 @@ export function ProfileContent({ user }: ProfileContentProps) {
   const [copied, setCopied] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user.name,
-    bio: user.bio || '',
+    bio: user.bio || "",
   });
-  
+
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -114,12 +114,14 @@ export function ProfileContent({ user }: ProfileContentProps) {
 
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (authUser) {
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authUser.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
           .single();
         setCurrentUser(profile);
         setIsOwnProfile(authUser.id === user.id);
@@ -130,37 +132,38 @@ export function ProfileContent({ user }: ProfileContentProps) {
   }, [user.id]);
 
   const handleCopyAddress = () => {
-    if (user.wallet_address && typeof navigator !== 'undefined') {
+    if (user.wallet_address && typeof navigator !== "undefined") {
       navigator.clipboard.writeText(user.wallet_address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast.success('Wallet address copied!');
+      toast.success("Wallet address copied!");
     }
   };
 
   const handleShareProfile = () => {
-    if (typeof navigator === 'undefined' || typeof window === 'undefined') return;
-    
+    if (typeof navigator === "undefined" || typeof window === "undefined")
+      return;
+
     navigator.clipboard.writeText(window.location.href);
-    toast.success('Profile link copied!');
+    toast.success("Profile link copied!");
   };
 
   const uploadFile = async (file: File, path: string): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2)}.${fileExt}`;
     const filePath = `${path}/${fileName}`;
 
     const { error } = await supabase.storage
-      .from('media')
+      .from("media")
       .upload(filePath, file);
 
     if (error) {
       throw new Error(`Upload failed: ${error.message}`);
     }
 
-    const { data } = supabase.storage
-      .from('media')
-      .getPublicUrl(filePath);
+    const { data } = supabase.storage.from("media").getPublicUrl(filePath);
 
     return data.publicUrl;
   };
@@ -170,12 +173,12 @@ export function ProfileContent({ user }: ProfileContentProps) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Avatar must be less than 5MB');
+      toast.error("Avatar must be less than 5MB");
       return;
     }
 
     try {
-      const avatarUrl = await uploadFile(file, 'avatars');
+      const avatarUrl = await uploadFile(file, "avatars");
       setAvatarPreview(avatarUrl);
     } catch (error: any) {
       toast.error(error.message);
@@ -187,12 +190,12 @@ export function ProfileContent({ user }: ProfileContentProps) {
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('Banner must be less than 10MB');
+      toast.error("Banner must be less than 10MB");
       return;
     }
 
     try {
-      const bannerUrl = await uploadFile(file, 'banners');
+      const bannerUrl = await uploadFile(file, "banners");
       setBannerPreview(bannerUrl);
     } catch (error: any) {
       toast.error(error.message);
@@ -219,26 +222,31 @@ export function ProfileContent({ user }: ProfileContentProps) {
       }
 
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update(updates)
-        .eq('id', user.id);
+        .eq("id", user.id);
 
       if (error) throw error;
 
-      toast.success('Profile updated successfully!');
+      toast.success("Profile updated successfully!");
       setIsEditing(false);
       // Refresh the page to show updates
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         window.location.reload();
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(error.message || "Failed to update profile");
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const StatCard = ({ icon: Icon, label, value, color = 'text-foreground' }: any) => (
+  const StatCard = ({
+    icon: Icon,
+    label,
+    value,
+    color = "text-foreground",
+  }: any) => (
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
@@ -255,7 +263,7 @@ export function ProfileContent({ user }: ProfileContentProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4">
         {/* Banner Section */}
         <motion.div
@@ -285,7 +293,7 @@ export function ProfileContent({ user }: ProfileContentProps) {
               </Button>
             )}
           </div>
-          
+
           {/* Profile Avatar */}
           <div className="absolute -bottom-16 left-8">
             <div className="relative">
@@ -352,7 +360,12 @@ export function ProfileContent({ user }: ProfileContentProps) {
                         <Input
                           id="edit-name"
                           value={editForm.name}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -360,19 +373,28 @@ export function ProfileContent({ user }: ProfileContentProps) {
                         <Textarea
                           id="edit-bio"
                           value={editForm.bio}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              bio: e.target.value,
+                            }))
+                          }
                           rows={4}
                         />
                       </div>
-                      <Button onClick={handleSaveProfile} disabled={isUpdating} className="w-full">
-                        {isUpdating ? 'Updating...' : 'Save Changes'}
+                      <Button
+                        onClick={handleSaveProfile}
+                        disabled={isUpdating}
+                        className="w-full"
+                      >
+                        {isUpdating ? "Updating..." : "Save Changes"}
                       </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
               )}
             </div>
-            
+
             {user.bio && (
               <p className="text-muted-foreground max-w-2xl">{user.bio}</p>
             )}
@@ -382,7 +404,8 @@ export function ProfileContent({ user }: ProfileContentProps) {
                 <div className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-muted-foreground" />
                   <code className="text-sm bg-muted px-2 py-1 rounded">
-                    {user.wallet_address.slice(0, 6)}...{user.wallet_address.slice(-4)}
+                    {user.wallet_address.slice(0, 6)}...
+                    {user.wallet_address.slice(-4)}
                   </code>
                   <Button
                     size="sm"
@@ -390,12 +413,19 @@ export function ProfileContent({ user }: ProfileContentProps) {
                     onClick={handleCopyAddress}
                     className="p-1 h-6 w-6"
                   >
-                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {copied ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
                   </Button>
                 </div>
               )}
               <Badge variant="secondary">
-                Joined {formatDistance(new Date(user.created_at), new Date(), { addSuffix: true })}
+                Joined{" "}
+                {formatDistance(new Date(user.created_at), new Date(), {
+                  addSuffix: true,
+                })}
               </Badge>
             </div>
           </div>
@@ -485,10 +515,20 @@ export function ProfileContent({ user }: ProfileContentProps) {
                     <NFTCard
                       key={nft.id}
                       {...nft}
-                      sale_type={nft.sale_type as 'fixed' | 'auction' | 'bid'}
-                      status={nft.status as 'available' | 'sold' | 'auction' | 'draft'}
-                      creator={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
-                      owner={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
+                      sale_type={nft.sale_type as "fixed" | "auction" | "bid"}
+                      status={
+                        nft.status as "available" | "sold" | "auction" | "draft"
+                      }
+                      creator={{
+                        id: user.id,
+                        name: user.name,
+                        avatar_url: user.avatar_url,
+                      }}
+                      owner={{
+                        id: user.id,
+                        name: user.name,
+                        avatar_url: user.avatar_url,
+                      }}
                     />
                   ))}
                 </div>
@@ -497,7 +537,9 @@ export function ProfileContent({ user }: ProfileContentProps) {
                   <Palette className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No NFTs owned</h3>
                   <p className="text-muted-foreground">
-                    {isOwnProfile ? 'Start collecting NFTs to see them here' : 'This user hasn\'t collected any NFTs yet'}
+                    {isOwnProfile
+                      ? "Start collecting NFTs to see them here"
+                      : "This user hasn't collected any NFTs yet"}
                   </p>
                 </div>
               )}
@@ -510,10 +552,20 @@ export function ProfileContent({ user }: ProfileContentProps) {
                     <NFTCard
                       key={nft.id}
                       {...nft}
-                      sale_type={nft.sale_type as 'fixed' | 'auction' | 'bid'}
-                      status={nft.status as 'available' | 'sold' | 'auction' | 'draft'}
-                      creator={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
-                      owner={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
+                      sale_type={nft.sale_type as "fixed" | "auction" | "bid"}
+                      status={
+                        nft.status as "available" | "sold" | "auction" | "draft"
+                      }
+                      creator={{
+                        id: user.id,
+                        name: user.name,
+                        avatar_url: user.avatar_url,
+                      }}
+                      owner={{
+                        id: user.id,
+                        name: user.name,
+                        avatar_url: user.avatar_url,
+                      }}
                     />
                   ))}
                 </div>
@@ -522,7 +574,9 @@ export function ProfileContent({ user }: ProfileContentProps) {
                   <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No NFTs created</h3>
                   <p className="text-muted-foreground mb-4">
-                    {isOwnProfile ? 'Create your first NFT to get started' : 'This user hasn\'t created any NFTs yet'}
+                    {isOwnProfile
+                      ? "Create your first NFT to get started"
+                      : "This user hasn't created any NFTs yet"}
                   </p>
                   {isOwnProfile && (
                     <Link href="/create">
@@ -552,7 +606,7 @@ export function ProfileContent({ user }: ProfileContentProps) {
                             />
                           </div>
                           <div className="flex-1">
-                            <Link 
+                            <Link
                               href={`/nft/${purchase.nft.id}`}
                               className="font-medium hover:underline"
                             >
@@ -561,7 +615,11 @@ export function ProfileContent({ user }: ProfileContentProps) {
                             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                               <span>Purchased for {purchase.amount} ETH</span>
                               <span>
-                                {formatDistance(new Date(purchase.created_at), new Date(), { addSuffix: true })}
+                                {formatDistance(
+                                  new Date(purchase.created_at),
+                                  new Date(),
+                                  { addSuffix: true }
+                                )}
                               </span>
                             </div>
                           </div>
@@ -581,7 +639,9 @@ export function ProfileContent({ user }: ProfileContentProps) {
                   <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No purchases</h3>
                   <p className="text-muted-foreground">
-                    {isOwnProfile ? 'Start collecting NFTs to see your purchases here' : 'This user hasn\'t made any purchases yet'}
+                    {isOwnProfile
+                      ? "Start collecting NFTs to see your purchases here"
+                      : "This user hasn't made any purchases yet"}
                   </p>
                 </div>
               )}
