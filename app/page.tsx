@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { NFTCard } from '@/components/nft/nft-card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, TrendingUp, Users, Zap, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-import { HeroSection } from '@/components/layout/hero-section';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { NFTCard } from "@/components/nft/nft-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowRight, TrendingUp, Users, Zap, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { HeroSection } from "@/components/layout/hero-section";
 
 interface NFT {
   id: string;
@@ -20,9 +20,9 @@ interface NFT {
   price: number;
   likes_count?: number;
   views?: number;
-  sale_type: 'fixed' | 'auction';
+  sale_type: "fixed" | "auction";
   auction_end_time?: string | null;
-  status: 'available' | 'sold' | 'draft';
+  status: "available" | "sold" | "draft";
   creator: {
     id: string;
     name: string;
@@ -63,8 +63,9 @@ export default function HomePage() {
 
       // Fetch featured NFTs (latest 4 available NFTs)
       const { data: nfts, error: nftsError } = await supabase
-        .from('nfts')
-        .select(`
+        .from("nfts")
+        .select(
+          `
           id,
           title,
           media_url,
@@ -76,36 +77,41 @@ export default function HomePage() {
           creator:creator_id(id, name, avatar_url),
           owner:owner_id(id, name, avatar_url),
           likes_count:likes(count)
-        `)
-        .eq('status', 'available')
-        .order('created_at', { ascending: false })
+        `
+        )
+        .in("status", ["active", "available"])
+        .order("created_at", { ascending: false })
         .limit(4);
 
       if (nftsError) {
-        console.error('Error fetching NFTs:', nftsError);
-        toast.error('Failed to load featured NFTs');
+        console.error("Error fetching NFTs:", nftsError);
+        toast.error("Failed to load featured NFTs");
       } else {
-        const transformedNFTs = (nfts || []).map(nft => ({
+        const transformedNFTs = (nfts || []).map((nft) => ({
           ...nft,
           creator: Array.isArray(nft.creator) ? nft.creator[0] : nft.creator,
           owner: Array.isArray(nft.owner) ? nft.owner[0] : nft.owner,
-          likes_count: Array.isArray(nft.likes_count) ? nft.likes_count.length : 0,
+          likes_count: Array.isArray(nft.likes_count)
+            ? nft.likes_count.length
+            : 0,
         }));
         setFeaturedNFTs(transformedNFTs);
       }
 
       // Fetch top sellers (simplified for now - using profile with NFT counts)
       const { data: sellers, error: sellersError } = await supabase
-        .from('profiles')
-        .select(`
+        .from("profiles")
+        .select(
+          `
           id,
           name,
           avatar_url
-        `)
+        `
+        )
         .limit(4);
 
       if (sellersError) {
-        console.error('Error fetching sellers:', sellersError);
+        console.error("Error fetching sellers:", sellersError);
       } else {
         const transformedSellers = (sellers || []).map((seller, index) => ({
           id: seller.id,
@@ -121,11 +127,18 @@ export default function HomePage() {
       const [
         { count: totalArtworks },
         { count: totalArtists },
-        { count: totalAuctions }
+        { count: totalAuctions },
       ] = await Promise.all([
-        supabase.from('nfts').select('*', { count: 'exact', head: true }).eq('status', 'available'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('nfts').select('*', { count: 'exact', head: true }).eq('sale_type', 'auction').eq('status', 'available'),
+        supabase
+          .from("nfts")
+          .select("*", { count: "exact", head: true })
+          .in("status", ["active", "available"]),
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase
+          .from("nfts")
+          .select("*", { count: "exact", head: true })
+          .eq("sale_type", "auction")
+          .in("status", ["active", "available"]),
       ]);
 
       setStats({
@@ -133,10 +146,9 @@ export default function HomePage() {
         totalArtists: totalArtists || 0,
         totalAuctions: totalAuctions || 0,
       });
-
     } catch (error) {
-      console.error('Error fetching home data:', error);
-      toast.error('Failed to load marketplace data');
+      console.error("Error fetching home data:", error);
+      toast.error("Failed to load marketplace data");
     } finally {
       setLoading(false);
     }
@@ -148,14 +160,16 @@ export default function HomePage() {
       <section className="relative  overflow-hidden">
         {/* <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg')] bg-cover bg-center opacity-5"></div> */}
 
-        <HeroSection/>
+        <HeroSection />
       </section>
 
       <section className="section-container">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="mb-2">Live Auctions</h2>
-            <p className="text-muted-foreground">Bid on exclusive NFTs before time runs out</p>
+            <p className="text-muted-foreground">
+              Bid on exclusive NFTs before time runs out
+            </p>
           </div>
           <Button variant="outline" className="btn-secondary" asChild>
             <Link href="/explore?filter=auction">
@@ -185,7 +199,7 @@ export default function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
               >
-                <NFTCard 
+                <NFTCard
                   id={nft.id}
                   title={nft.title}
                   media_url={nft.media_url}
@@ -194,7 +208,11 @@ export default function HomePage() {
                   views={nft.views || 0}
                   sale_type={nft.sale_type}
                   auction_end_time={nft.auction_end_time}
-                  status={nft.status === 'available' ? 'available' : nft.status as 'sold' | 'draft'}
+                  status={
+                    nft.status === "available"
+                      ? "available"
+                      : (nft.status as "sold" | "draft")
+                  }
                   creator={nft.creator}
                   owner={nft.owner}
                 />
@@ -202,7 +220,9 @@ export default function HomePage() {
             ))
           ) : (
             <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No NFTs available yet. Be the first to create one!</p>
+              <p className="text-muted-foreground">
+                No NFTs available yet. Be the first to create one!
+              </p>
               <Button className="mt-4" asChild>
                 <Link href="/create">Create NFT</Link>
               </Button>
@@ -215,7 +235,9 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="mb-2">Top Sellers</h2>
-            <p className="text-muted-foreground">Meet the most successful creators this month</p>
+            <p className="text-muted-foreground">
+              Meet the most successful creators this month
+            </p>
           </div>
           <Button variant="outline" className="btn-secondary" asChild>
             <Link href="/rankings">
@@ -251,8 +273,12 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="pt-4 border-t border-border">
-                    <p className="text-xs text-muted-foreground mb-1">Total Sales</p>
-                    <p className="font-bold text-lg">{seller.total_sales.toFixed(2)} ETH</p>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Total Sales
+                    </p>
+                    <p className="font-bold text-lg">
+                      {seller.total_sales.toFixed(2)} ETH
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -267,13 +293,20 @@ export default function HomePage() {
           <div className="relative z-10 max-w-2xl mx-auto">
             <h2 className="mb-4">Start Your NFT Journey Today</h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Create, sell, and collect unique digital assets. Join the Unitrader community and be part of the future of digital ownership.
+              Create, sell, and collect unique digital assets. Join the
+              Unitrader community and be part of the future of digital
+              ownership.
             </p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <Button size="lg" className="btn-primary" asChild>
                 <Link href="/auth/register">Get Started Free</Link>
               </Button>
-              <Button size="lg" variant="outline" className="btn-secondary" asChild>
+              <Button
+                size="lg"
+                variant="outline"
+                className="btn-secondary"
+                asChild
+              >
                 <Link href="/about">Learn More</Link>
               </Button>
             </div>

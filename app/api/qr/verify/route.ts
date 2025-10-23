@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
     if (!payload) {
       return NextResponse.json(
-        { error: 'Payload is required' },
+        { error: "Payload is required" },
         { status: 400 }
       );
     }
@@ -18,15 +18,19 @@ export async function POST(request: NextRequest) {
       decodedPayload = JSON.parse(atob(payload));
     } catch (error) {
       return NextResponse.json(
-        { error: 'Invalid payload format' },
+        { error: "Invalid payload format" },
         { status: 400 }
       );
     }
 
     // Validate payload structure
-    if (!decodedPayload.orderId || !decodedPayload.productId || !decodedPayload.timestamp) {
+    if (
+      !decodedPayload.orderId ||
+      !decodedPayload.productId ||
+      !decodedPayload.timestamp
+    ) {
       return NextResponse.json(
-        { error: 'Invalid payload structure' },
+        { error: "Invalid payload structure" },
         { status: 400 }
       );
     }
@@ -38,59 +42,60 @@ export async function POST(request: NextRequest) {
 
     if (qrAge > maxAge) {
       return NextResponse.json(
-        { error: 'QR code has expired' },
+        { error: "QR code has expired" },
         { status: 400 }
       );
     }
 
     // Verify order exists and matches payload
     const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .select(`
+      .from("orders")
+      .select(
+        `
         id,
-        amount,
+        price,
         status,
         created_at,
         buyer_id,
         seller_id,
+        verification_code,
         buyer:profiles!orders_buyer_id_fkey(id, name, avatar_url),
         seller:profiles!orders_seller_id_fkey(id, name, avatar_url),
         nft:nfts(id, title, media_url)
-      `)
-      .eq('id', decodedPayload.orderId)
+      `
+      )
+      .eq("id", decodedPayload.orderId)
       .single();
 
     if (orderError || !orderData) {
-      return NextResponse.json(
-        { error: 'Order not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // Validate order details match payload
     if (
       orderData.buyer_id !== decodedPayload.buyerId ||
       orderData.seller_id !== decodedPayload.sellerId ||
-      Math.abs(orderData.amount - decodedPayload.amount) > 0.0001
+      Math.abs(orderData.price - decodedPayload.price) > 0.0001
     ) {
       return NextResponse.json(
-        { error: 'Order details do not match QR code' },
+        { error: "Order details do not match QR code" },
         { status: 400 }
       );
     }
 
     // Check if QR record exists
     const { data: qrRecord, error: qrError } = await supabase
-      .from('qr_records')
-      .select('*')
-      .eq('order_id', decodedPayload.orderId)
-      .eq('payload_hash', payload)
+      .from("qr_records")
+      .select("*")
+      .eq("order_id", decodedPayload.orderId)
+      .eq("payload_hash", payload)
       .single();
 
-    if (qrError && qrError.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('QR record fetch error:', qrError);
+    if (qrError && qrError.code !== "PGRST116") {
+      // PGRST116 = no rows found
+      console.error("QR record fetch error:", qrError);
       return NextResponse.json(
-        { error: 'Failed to verify QR record' },
+        { error: "Failed to verify QR record" },
         { status: 500 }
       );
     }
@@ -98,33 +103,33 @@ export async function POST(request: NextRequest) {
     // Log the scan
     const scanData = {
       scanned_at: new Date().toISOString(),
-      scanned_by_ip: request.headers.get('x-forwarded-for') || 'unknown',
-      status: 'scanned',
+      scanned_by_ip: request.headers.get("x-forwarded-for") || "unknown",
+      status: "scanned",
     };
 
     if (qrRecord) {
-      await supabase
-        .from('qr_records')
-        .update(scanData)
-        .eq('id', qrRecord.id);
+      await supabase.from("qr_records").update(scanData).eq("id", qrRecord.id);
     }
 
     return NextResponse.json({
       isValid: true,
       order: {
         ...orderData,
-        buyer: Array.isArray(orderData.buyer) ? orderData.buyer[0] : orderData.buyer,
-        seller: Array.isArray(orderData.seller) ? orderData.seller[0] : orderData.seller,
+        buyer: Array.isArray(orderData.buyer)
+          ? orderData.buyer[0]
+          : orderData.buyer,
+        seller: Array.isArray(orderData.seller)
+          ? orderData.seller[0]
+          : orderData.seller,
         nft: Array.isArray(orderData.nft) ? orderData.nft[0] : orderData.nft,
       },
       scannedAt: new Date().toISOString(),
       qrRecord: qrRecord || null,
     });
-
   } catch (error: any) {
-    console.error('QR verification error:', error);
+    console.error("QR verification error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -136,37 +141,36 @@ export async function PUT(request: NextRequest) {
 
     if (!orderId || !status) {
       return NextResponse.json(
-        { error: 'Order ID and status are required' },
+        { error: "Order ID and status are required" },
         { status: 400 }
       );
     }
 
     // Update QR record status
     const { error } = await supabase
-      .from('qr_records')
-      .update({ 
+      .from("qr_records")
+      .update({
         status,
-        updated_at: new Date().toISOString() 
+        updated_at: new Date().toISOString(),
       })
-      .eq('order_id', orderId);
+      .eq("order_id", orderId);
 
     if (error) {
-      console.error('QR record update error:', error);
+      console.error("QR record update error:", error);
       return NextResponse.json(
-        { error: 'Failed to update QR record' },
+        { error: "Failed to update QR record" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ 
-      message: 'QR record updated successfully',
-      status 
+    return NextResponse.json({
+      message: "QR record updated successfully",
+      status,
     });
-
   } catch (error: any) {
-    console.error('QR update error:', error);
+    console.error("QR update error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

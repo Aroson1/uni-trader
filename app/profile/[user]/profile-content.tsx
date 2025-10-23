@@ -145,7 +145,12 @@ interface ProfileContentProps {
 }
 
 export function ProfileContent({ user }: ProfileContentProps) {
-  const { user: authUser, profile: authProfile, loading: authLoading, isAuthenticated } = useOptionalAuth();
+  const {
+    user: authUser,
+    profile: authProfile,
+    loading: authLoading,
+    isAuthenticated,
+  } = useOptionalAuth();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -170,8 +175,8 @@ export function ProfileContent({ user }: ProfileContentProps) {
       // Fallback if profile not loaded yet
       setCurrentUser({
         id: authUser.id,
-        name: authUser.email?.split('@')[0] || 'User',
-        email: authUser.email
+        name: authUser.email?.split("@")[0] || "User",
+        email: authUser.email,
       });
       setIsOwnProfile(authUser.id === user.id);
     } else {
@@ -639,26 +644,37 @@ export function ProfileContent({ user }: ProfileContentProps) {
               {user.purchasedNfts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {user.purchasedNfts.map((purchase) => (
-                    <NFTCard
-                      key={purchase.id}
-                      {...purchase.nft}
-                      sale_type={
-                        purchase.nft.sale_type as "fixed" | "auction" | "bid"
-                      }
-                      status={
-                        purchase.nft.status as
-                          | "available"
-                          | "sold"
-                          | "auction"
-                          | "draft"
-                      }
-                      creator={purchase.nft.creator}
-                      owner={{
-                        id: user.id,
-                        name: user.name,
-                        avatar_url: user.avatar_url,
-                      }}
-                    />
+                    <div key={purchase.id} className="relative">
+                      <NFTCard
+                        {...purchase.nft}
+                        sale_type={
+                          purchase.nft.sale_type as "fixed" | "auction" | "bid"
+                        }
+                        status={
+                          purchase.nft.status as
+                            | "available"
+                            | "sold"
+                            | "auction"
+                            | "draft"
+                        }
+                        creator={purchase.nft.creator}
+                        owner={{
+                          id: user.id,
+                          name: user.name,
+                          avatar_url: user.avatar_url,
+                        }}
+                      />
+                      {purchase.status === "sold" && (
+                        <div className="absolute top-2 right-2">
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-500/90 text-white border-green-600"
+                          >
+                            Owned
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (
