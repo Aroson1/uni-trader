@@ -1,6 +1,6 @@
--- Fix verification function to ensure NFT status is updated
--- This ensures that when an order is verified, the NFT status is marked as 'sold'
-
+-- Fix NFT ownership transfer in verification function
+-- This ensures that when an order is completed through verification, 
+-- the NFT ownership is automatically transferred to the buyer
 
 CREATE OR REPLACE FUNCTION verify_order_payment(
   p_verification_code TEXT
@@ -37,6 +37,6 @@ BEGIN
     owner_id = v_order.buyer_id
   WHERE id = v_order.nft_id;
   
-  RETURN QUERY SELECT TRUE, 'Order verified and payment completed'::TEXT, v_order.id;
+  RETURN QUERY SELECT TRUE, 'Order verified, payment completed, and NFT transferred'::TEXT, v_order.id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

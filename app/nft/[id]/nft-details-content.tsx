@@ -377,41 +377,65 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
             {/* Price & Auction Info */}
             <Card>
               <CardContent className="p-6">
-                <BidComponent
-                  nftId={nft.id}
-                  currentPrice={nft.price}
-                  saleType={nft.sale_type as "fixed" | "auction" | "bid"}
-                  auctionEndTime={nft.auction_end_time}
-                  onBidPlaced={() => {
-                    // Refresh bids data
-                    const fetchBids = async () => {
-                      const { data } = await supabase
-                        .from("bids")
-                        .select(
+                {/* Only show BidComponent if user is not the owner or creator */}
+                {currentUser && (currentUser.id === nft.owner.id || currentUser.id === nft.creator.id) ? (
+                  <div className="text-center py-8">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold text-muted-foreground">
+                        {currentUser.id === nft.creator.id ? "You created this NFT" : "You own this NFT"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        You cannot bid on or purchase your own NFT
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-4 p-4 bg-muted rounded-lg">
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Current Price</p>
+                        <p className="text-2xl font-bold">{nft.price} KFC</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Sale Type</p>
+                        <p className="text-lg font-medium capitalize">{nft.sale_type}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <BidComponent
+                    nftId={nft.id}
+                    currentPrice={nft.price}
+                    saleType={nft.sale_type as "fixed" | "auction" | "bid"}
+                    auctionEndTime={nft.auction_end_time}
+                    onBidPlaced={() => {
+                      // Refresh bids data
+                      const fetchBids = async () => {
+                        const { data } = await supabase
+                          .from("bids")
+                          .select(
+                            `
+                            id,
+                            amount,
+                            status,
+                            created_at,
+                            bidder:profiles(id, name, avatar_url)
                           `
-                          id,
-                          amount,
-                          status,
-                          created_at,
-                          bidder:profiles(id, name, avatar_url)
-                        `
-                        )
-                        .eq("nft_id", nft.id)
-                        .eq("status", "active")
-                        .order("amount", { ascending: false });
+                          )
+                          .eq("nft_id", nft.id)
+                          .eq("status", "active")
+                          .order("amount", { ascending: false });
 
-                      if (data) {
-                        setCurrentBids(data as any);
-                      }
-                    };
-                    fetchBids();
-                    toast.success("Bid placed successfully!");
-                  }}
-                  onPurchase={() => {
-                    toast.success("NFT purchased successfully!");
-                    // You might want to redirect to success page
-                  }}
-                />
+                        if (data) {
+                          setCurrentBids(data as any);
+                        }
+                      };
+                      fetchBids();
+                      toast.success("Bid placed successfully!");
+                    }}
+                    onPurchase={() => {
+                      toast.success("NFT purchased successfully!");
+                      // You might want to redirect to success page
+                    }}
+                  />
+                )}
               </CardContent>
             </Card>
 

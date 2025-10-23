@@ -10,9 +10,9 @@ AND orders.status = 'completed'
 AND nfts.owner_id = nfts.creator_id; -- Only update if still owned by creator
 
 -- Log the changes
-INSERT INTO system_logs (message, created_at) 
-SELECT 
-  'Fixed NFT ownership for ' || COUNT(*) || ' completed orders',
-  NOW()
-FROM orders 
-WHERE status = 'completed';
+-- INSERT INTO system_logs (message, created_at) 
+-- SELECT 
+--   'Fixed NFT ownership for ' || COUNT(*) || ' completed orders',
+--   NOW()
+-- FROM orders 
+-- WHERE status = 'completed';
