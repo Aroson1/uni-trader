@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { useRequireAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ interface CreateNFTForm {
 }
 
 export default function CreatePage() {
+  const { user, profile, loading: authLoading, isReady } = useRequireAuth('/create');
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,24 +84,17 @@ export default function CreatePage() {
 
   // Initialize user data on mount
   useEffect(() => {
-    const initUser = async () => {
-      // Get current user (middleware ensures user is authenticated)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        setCurrentUser(profile);
-      }
-      
-      setIsLoading(false);
-    };
-    
-    initUser();
-  }, []);
+    // Wait for auth to be ready and user to be available
+    if (!isReady || !user) return;
+
+    // Use user and profile from auth hook instead of fetching again
+    setCurrentUser(profile || {
+      id: user.id,
+      name: user.email?.split('@')[0] || 'User',
+      email: user.email
+    });
+    setIsLoading(false);
+  }, [isReady, user, profile]);
 
   if (isLoading || !supabase) {
     return (

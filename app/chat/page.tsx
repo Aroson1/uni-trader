@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { useRequireAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
@@ -44,32 +44,20 @@ interface Conversation {
 }
 
 export default function ChatPage() {
-  const router = useRouter();
+  const { user, profile, loading: authLoading, isReady } = useRequireAuth('/chat');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      setCurrentUser(profile);
-      loadConversations(user.id);
-    };
+    // Wait for auth to be ready and user to be available
+    if (!isReady || !user) return;
     
-    checkUser();
-  }, [router]);
+    // Use the user from auth hook instead of fetching again
+    setCurrentUser(profile);
+    loadConversations(user.id);
+  }, [isReady, user, profile]);
 
   const loadConversations = async (userId: string) => {
     setLoading(true);

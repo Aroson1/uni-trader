@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useOptionalAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { WalletTopUp } from "@/components/wallet/wallet-top-up";
@@ -144,6 +145,7 @@ interface ProfileContentProps {
 }
 
 export function ProfileContent({ user }: ProfileContentProps) {
+  const { user: authUser, profile: authProfile, loading: authLoading, isAuthenticated } = useOptionalAuth();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -160,23 +162,23 @@ export function ProfileContent({ user }: ProfileContentProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    const getCurrentUser = async () => {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
-      if (authUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authUser.id)
-          .single();
-        setCurrentUser(profile);
-        setIsOwnProfile(authUser.id === user.id);
-      }
-    };
-
-    getCurrentUser();
-  }, [user.id]);
+    // Use auth user from hook instead of fetching again
+    if (authUser && authProfile) {
+      setCurrentUser(authProfile);
+      setIsOwnProfile(authUser.id === user.id);
+    } else if (authUser) {
+      // Fallback if profile not loaded yet
+      setCurrentUser({
+        id: authUser.id,
+        name: authUser.email?.split('@')[0] || 'User',
+        email: authUser.email
+      });
+      setIsOwnProfile(authUser.id === user.id);
+    } else {
+      setCurrentUser(null);
+      setIsOwnProfile(false);
+    }
+  }, [authUser, authProfile, user.id]);
 
   const handleCopyAddress = () => {
     if (user.wallet_address && typeof navigator !== "undefined") {

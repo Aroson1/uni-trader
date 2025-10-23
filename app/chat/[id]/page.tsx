@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useRequireAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ interface ChatConversationProps {
 export default function ChatConversationPage({
   params,
 }: ChatConversationProps) {
+  const { user, profile, loading: authLoading, isReady } = useRequireAuth();
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -61,38 +63,23 @@ export default function ChatConversationPage({
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/auth/login");
-        return;
-      }
+    // Wait for auth to be ready and user to be available
+    if (!isReady || !user) return;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+    const initChat = async () => {
+      // Use profile from auth hook or create fallback
+      const userProfile = profile || {
+        id: user.id,
+        name: user.email?.split('@')[0] || 'User',
+        avatar_url: null
+      };
 
-      // Check if user is banned
-      if (profile?.banned) {
-        toast.error(
-          `You have been banned from the platform. Reason: ${
-            profile.ban_reason || "Multiple moderation warnings"
-          }`
-        );
-        router.push("/");
-        return;
-      }
-
-      setCurrentUser(profile);
+      setCurrentUser(userProfile);
       loadConversationData(user.id, params.id);
     };
 
-    checkUser();
-  }, [router, params.id]);
+    initChat();
+  }, [isReady, user, profile, params.id]);
 
   useEffect(() => {
     // Scroll to bottom on initial load or when receiving new messages

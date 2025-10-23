@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useRequireAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ interface NFTData {
 }
 
 export default function NewChatPage() {
+  const { user, profile, loading: authLoading, isReady } = useRequireAuth('/chat/new');
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetUserId = searchParams.get("user");
@@ -47,39 +49,23 @@ export default function NewChatPage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to be ready and user to be available
+    if (!isReady || !user) return;
+
     const initializeChat = async () => {
       try {
-        // Get current user
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          router.push("/auth/login");
-          return;
-        }
-
-        const { data: currentProfile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (!currentProfile) {
-          toast.error("Profile not found");
-          router.push("/");
-          return;
-        }
-
-        // Check if user is banned
-        if (currentProfile.banned) {
-          toast.error(
-            `You have been banned from the platform. Reason: ${
-              currentProfile.ban_reason || "Multiple moderation warnings"
-            }`
-          );
-          router.push("/");
-          return;
-        }
+        // Use user and profile from auth hook instead of fetching again
+        const currentProfile: UserProfile = profile ? {
+          id: profile.id,
+          name: profile.name,
+          avatar_url: profile.avatar_url || undefined,
+          wallet_address: profile.wallet_address || undefined
+        } : {
+          id: user.id,
+          name: user.email?.split('@')[0] || 'User',
+          avatar_url: undefined,
+          wallet_address: undefined
+        };
 
         setCurrentUser(currentProfile);
 
@@ -148,7 +134,7 @@ export default function NewChatPage() {
     };
 
     initializeChat();
-  }, [router, targetUserId, nftId]);
+  }, [isReady, user, profile, router, targetUserId, nftId]);
 
   const handleStartConversation = async () => {
     if (!targetUser || !currentUser || !message.trim()) {

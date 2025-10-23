@@ -2,21 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useOptionalAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 
 export default function TestAuthPage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-    
-    getUser();
-  }, []);
+  const { user, profile, loading: authLoading, isAuthenticated } = useOptionalAuth();
 
   const handleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -31,7 +21,7 @@ export default function TestAuthPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading) {
     return <div>Loading...</div>;
   }
 

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useOptionalAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ interface NFTDetailsContentProps {
 }
 
 export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
+  const { user, profile, loading: authLoading, isAuthenticated } = useOptionalAuth();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(nft.likeCount);
@@ -97,20 +99,12 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
     new Date(nft.auction_end_time) > new Date();
 
   useEffect(() => {
-    // Get current user
-    const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        setCurrentUser(profile);
-
-        // Check if user has liked this NFT
+    // Use user from auth hook instead of fetching again
+    if (user && profile) {
+      setCurrentUser(profile);
+      
+      // Check if user has liked this NFT
+      const checkLike = async () => {
         const { data: like } = await supabase
           .from("likes")
           .select("*")
@@ -118,10 +112,22 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
           .eq("nft_id", nft.id)
           .single();
         setIsLiked(!!like);
-      }
-    };
+      };
+      checkLike();
+    } else if (user) {
+      // Fallback if profile not loaded yet
+      setCurrentUser({
+        id: user.id,
+        name: user.email?.split('@')[0] || 'User',
+        email: user.email
+      });
+    } else {
+      setCurrentUser(null);
+      setIsLiked(false);
+    }
+  }, [user, profile, nft.id]);
 
-    getCurrentUser();
+  useEffect(() => {
 
     // Set up realtime subscription for bids
     const channel = supabase

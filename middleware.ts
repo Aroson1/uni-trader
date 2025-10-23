@@ -2,6 +2,14 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  // Skip middleware for static files and API routes that don't need auth
+  const { pathname } = request.nextUrl;
+  
+  // Skip for API routes except auth-required ones
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/protected')) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -54,12 +62,26 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Use getSession() to properly refresh tokens
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Use getSession() to properly refresh tokens and validate authentication
+  let session = null;
+  let user = null;
+  
+  try {
+    const {
+      data: { session: authSession },
+      error: sessionError
+    } = await supabase.auth.getSession();
 
-  // const user = session?.user;
+    if (sessionError) {
+      console.error('Middleware session error:', sessionError);
+    } else {
+      session = authSession;
+      user = authSession?.user || null;
+    }
+  } catch (error) {
+    console.error('Middleware auth error:', error);
+    // Continue with user as null for safety
+  }
 
   // Protected routes that require authentication
   const protectedRoutes = [
@@ -68,6 +90,7 @@ export async function middleware(request: NextRequest) {
     "/orders",
     "/admin",
     "/create",
+    "/chat",
   ];
   const isProtectedRoute = protectedRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)
@@ -92,6 +115,15 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (except /api/protected)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (images, etc.)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/api/protected/:path*"
   ],
 };

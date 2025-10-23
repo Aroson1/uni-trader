@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
+import { useRequireAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { WalletTopUp } from '@/components/wallet/wallet-top-up';
@@ -64,8 +64,8 @@ interface Payment {
 }
 
 export default function WalletPage() {
-  const router = useRouter();
-  const { user, profile, fetchProfile } = useAuthStore();
+  const { user, profile, loading: authLoading, isReady } = useRequireAuth('/wallet');
+  const { fetchProfile } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -76,13 +76,11 @@ export default function WalletPage() {
   const portfolioValue = walletBalance * KFC_TO_INR_RATE;
 
   useEffect(() => {
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
+    // Wait for auth to be ready and user to be available
+    if (!isReady || !user) return;
     
     loadWalletData();
-  }, [user, router]);
+  }, [isReady, user]);
 
   const loadWalletData = async () => {
     if (!user) return;
@@ -217,14 +215,15 @@ export default function WalletPage() {
     }
   };
 
-  if (loading) {
+  // Show loading while auth is initializing or wallet data is loading
+  if (!isReady || loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>Loading wallet data...</p>
+            <p>{!isReady ? 'Checking authentication...' : 'Loading wallet data...'}</p>
           </div>
         </main>
         <Footer />
