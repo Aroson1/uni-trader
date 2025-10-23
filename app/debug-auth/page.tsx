@@ -67,7 +67,9 @@ export default function DebugAuthPage() {
           <h2 className="text-xl font-semibold mb-4">Cookies</h2>
           <div className="space-y-2 font-mono text-sm">
             <div>Document Cookies:</div>
-            <div className="pl-4 text-xs">{document.cookie || 'No cookies'}</div>
+            <div className="pl-4 text-xs">
+              {typeof window !== 'undefined' ? (document.cookie || 'No cookies') : 'Server-side rendering'}
+            </div>
           </div>
         </div>
       </div>

@@ -30,7 +30,8 @@ interface QRPayload {
   productId: string;
   buyerId: string;
   sellerId: string;
-  amount: number;
+  price: number;
+  verificationCode: string;
   timestamp: number;
   nonce: string;
 }
@@ -39,9 +40,10 @@ interface VerificationResult {
   isValid: boolean;
   order?: {
     id: string;
-    amount: number;
+    price: number;
     status: string;
     created_at: string;
+    verification_code: string;
     buyer: {
       id: string;
       name: string;
@@ -76,17 +78,72 @@ export default function VerifyPage() {
 
   useEffect(() => {
     const payloadParam = searchParams.get('payload');
+    const codeParam = searchParams.get('code');
+    const orderParam = searchParams.get('order');
+    
     if (payloadParam) {
       verifyQRCode(payloadParam);
+    } else if (codeParam && orderParam) {
+      verifyWithCode(codeParam, orderParam);
     } else {
       setLoading(false);
       setVerificationResult({
         isValid: false,
-        error: 'No QR code payload provided',
+        error: 'No QR code or verification code provided',
         scannedAt: new Date().toISOString(),
       });
     }
   }, [searchParams]);
+
+  const verifyWithCode = async (verificationCode: string, orderId: string) => {
+    setLoading(true);
+
+    try {
+      // Get order details with the verification code
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          price,
+          status,
+          created_at,
+          buyer_id,
+          seller_id,
+          verification_code,
+          buyer:profiles!orders_buyer_id_fkey(id, name, avatar_url),
+          seller:profiles!orders_seller_id_fkey(id, name, avatar_url),
+          nft:nfts(id, title, media_url)
+        `)
+        .eq('verification_code', verificationCode)
+        .eq('id', orderId)
+        .single();
+
+      if (orderError || !orderData) {
+        throw new Error('Order not found or verification code invalid');
+      }
+
+      setVerificationResult({
+        isValid: true,
+        order: {
+          ...orderData,
+          buyer: Array.isArray(orderData.buyer) ? orderData.buyer[0] : orderData.buyer,
+          seller: Array.isArray(orderData.seller) ? orderData.seller[0] : orderData.seller,
+          nft: Array.isArray(orderData.nft) ? orderData.nft[0] : orderData.nft,
+        },
+        scannedAt: new Date().toISOString(),
+      });
+
+    } catch (error: any) {
+      console.error('Verification error:', error);
+      setVerificationResult({
+        isValid: false,
+        error: error.message || 'Failed to verify order',
+        scannedAt: new Date().toISOString(),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const verifyQRCode = async (payloadString: string) => {
     setLoading(true);
@@ -110,21 +167,22 @@ export default function VerifyPage() {
         throw new Error('QR code has expired');
       }
 
-      // Verify order exists and matches payload
+      // Get order details with the verification code
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select(`
           id,
-          amount,
+          price,
           status,
           created_at,
           buyer_id,
           seller_id,
+          verification_code,
           buyer:profiles!orders_buyer_id_fkey(id, name, avatar_url),
           seller:profiles!orders_seller_id_fkey(id, name, avatar_url),
           nft:nfts(id, title, media_url)
         `)
-        .eq('id', decodedPayload.orderId)
+        .eq('verification_code', decodedPayload.verificationCode)
         .single();
 
       if (orderError || !orderData) {
@@ -135,7 +193,7 @@ export default function VerifyPage() {
       if (
         orderData.buyer_id !== decodedPayload.buyerId ||
         orderData.seller_id !== decodedPayload.sellerId ||
-        Math.abs(orderData.amount - decodedPayload.amount) > 0.0001 // Allow small floating point differences
+        Math.abs(orderData.price - decodedPayload.price) > 0.0001 // Allow small floating point differences
       ) {
         throw new Error('Order details do not match QR code');
       }
@@ -187,30 +245,41 @@ export default function VerifyPage() {
   };
 
   const markTransferComplete = async () => {
-    if (!verificationResult?.order || !payload) return;
+    if (!verificationResult?.order || !verificationResult.order.verification_code) return;
 
     setMarkingComplete(true);
 
     try {
-      // Update QR record status
-      await supabase
-        .from('qr_records')
-        .update({ status: 'verified' })
-        .eq('order_id', payload.orderId);
+      // Use the verification function to complete the payment
+      const { data, error } = await supabase.rpc('verify_order_payment', {
+        p_verification_code: verificationResult.order.verification_code
+      });
 
-      // Could also update order status or create transfer record here
-      
-      toast.success('Transfer marked as complete!');
-      
-      // Update verification result
-      setVerificationResult(prev => prev ? {
-        ...prev,
-        qrRecord: prev.qrRecord ? { ...prev.qrRecord, status: 'verified' } : undefined
-      } : null);
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data && data.length > 0) {
+        const result = data[0];
+        if (result.success) {
+          toast.success('Payment completed successfully! Seller has been paid.');
+          
+          // Update verification result to show completed status
+          setVerificationResult(prev => prev ? {
+            ...prev,
+            order: prev.order ? { ...prev.order, status: 'completed' } : prev.order,
+            qrRecord: prev.qrRecord ? { ...prev.qrRecord, status: 'verified' } : undefined
+          } : null);
+        } else {
+          throw new Error(result.message || 'Verification failed');
+        }
+      } else {
+        throw new Error('No response from verification function');
+      }
 
     } catch (error: any) {
-      toast.error('Failed to mark transfer complete');
-      console.error('Error marking transfer complete:', error);
+      toast.error(error.message || 'Failed to complete payment');
+      console.error('Error completing payment:', error);
     } finally {
       setMarkingComplete(false);
     }
@@ -341,7 +410,7 @@ export default function VerifyPage() {
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Amount</span>
-                          <span className="font-medium">{verificationResult.order.amount} ETH</span>
+                          <span className="font-medium">{verificationResult.order.price} KFC</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Status</span>
@@ -413,33 +482,33 @@ export default function VerifyPage() {
             {verificationResult?.isValid && verificationResult.order && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Complete Transfer</CardTitle>
+                  <CardTitle>Complete Payment</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-muted-foreground">
-                    If you are completing the item transfer, click the button below to mark 
-                    this transaction as complete.
+                    If you are the buyer and have received the NFT, click the button below to 
+                    complete the payment to the seller.
                   </p>
                   
                   <Button 
                     onClick={markTransferComplete}
-                    disabled={markingComplete || verificationResult.qrRecord?.status === 'verified'}
+                    disabled={markingComplete || verificationResult.order?.status === 'completed'}
                     className="w-full"
                   >
                     {markingComplete ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Marking Complete...
+                        Processing Payment...
                       </>
-                    ) : verificationResult.qrRecord?.status === 'verified' ? (
+                    ) : verificationResult.order?.status === 'completed' ? (
                       <>
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Transfer Already Complete
+                        Payment Already Completed
                       </>
                     ) : (
                       <>
-                        <Package className="w-4 h-4 mr-2" />
-                        Mark Transfer Complete
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        Complete Payment to Seller
                       </>
                     )}
                   </Button>

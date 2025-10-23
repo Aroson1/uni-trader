@@ -10,6 +10,7 @@ interface Profile {
   avatar_url: string | null;
   banner_url: string | null;
   wallet_address: string | null;
+  wallet_balance: number;
   is_verified: boolean;
   social_links: Record<string, any>;
   preferences: Record<string, any>;
@@ -137,6 +138,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             avatar_url: profileData.avatar_url,
             banner_url: null,
             wallet_address: null,
+            wallet_balance: 0,
             is_verified: false,
             social_links: {},
             preferences: {},

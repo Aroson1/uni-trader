@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { BidComponent } from '@/components/nft/bid-component';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -367,62 +368,39 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
             {/* Price & Auction Info */}
             <Card>
               <CardContent className="p-6">
-                {isAuction && isAuctionActive ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current bid</p>
-                        <p className="text-2xl font-bold">{highestBid} ETH</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Auction ends in</p>
-                        <Countdown 
-                          endTime={nft.auction_end_time!} 
-                          className="text-lg font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Bid Input */}
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          placeholder={`Min bid ${highestBid + 0.01} ETH`}
-                          value={bidAmount}
-                          onChange={(e) => setBidAmount(e.target.value)}
-                          step="0.01"
-                          min={highestBid + 0.01}
-                        />
-                        <Button 
-                          onClick={handlePlaceBid}
-                          disabled={isPlacingBid || !bidAmount}
-                          className="whitespace-nowrap"
-                        >
-                          <Gavel className="w-4 h-4 mr-2" />
-                          Place Bid
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Price</p>
-                      <p className="text-3xl font-bold">{nft.price} ETH</p>
-                    </div>
-                    
-                    <Button 
-                      onClick={handleBuyNow} 
-                      size="lg" 
-                      className="w-full"
-                      disabled={currentUser?.id === nft.owner.id}
-                    >
-                      <Wallet className="w-4 h-4 mr-2" />
-                      {currentUser?.id === nft.owner.id ? 'You own this NFT' : 'Buy Now'}
-                    </Button>
-                  </div>
-                )}
+                <BidComponent
+                  nftId={nft.id}
+                  currentPrice={nft.price}
+                  saleType={nft.sale_type as 'fixed' | 'auction' | 'bid'}
+                  auctionEndTime={nft.auction_end_time}
+                  onBidPlaced={() => {
+                    // Refresh bids data
+                    const fetchBids = async () => {
+                      const { data } = await supabase
+                        .from('bids')
+                        .select(`
+                          id,
+                          amount,
+                          status,
+                          created_at,
+                          bidder:profiles(id, name, avatar_url)
+                        `)
+                        .eq('nft_id', nft.id)
+                        .eq('status', 'active')
+                        .order('amount', { ascending: false });
+                      
+                      if (data) {
+                        setCurrentBids(data as any);
+                      }
+                    };
+                    fetchBids();
+                    toast.success('Bid placed successfully!');
+                  }}
+                  onPurchase={() => {
+                    toast.success('NFT purchased successfully!');
+                    // You might want to redirect to success page
+                  }}
+                />
               </CardContent>
             </Card>
 

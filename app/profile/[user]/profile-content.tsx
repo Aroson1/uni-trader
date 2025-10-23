@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { WalletTopUp } from '@/components/wallet/wallet-top-up';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,7 +38,8 @@ import {
   Palette,
   Share2,
   Copy,
-  Check
+  Check,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
@@ -51,18 +53,8 @@ interface ProfileContentProps {
     avatar_url?: string;
     banner_url?: string;
     wallet_address?: string;
+    wallet_balance?: number;
     created_at: string;
-    nfts: Array<{
-      id: string;
-      title: string;
-      media_url: string;
-      price: number;
-      status: string;
-      sale_type: string;
-      likes: number;
-      views: number;
-      created_at: string;
-    }>;
     createdNfts: Array<{
       id: string;
       title: string;
@@ -74,11 +66,65 @@ interface ProfileContentProps {
       views: number;
       created_at: string;
     }>;
-    purchases: Array<{
+    purchasedNfts: Array<{
       id: string;
-      amount: number;
+      price: number;
       created_at: string;
       status: string;
+      nft: {
+        id: string;
+        title: string;
+        media_url: string;
+        price: number;
+        status: string;
+        sale_type: string;
+        likes: number;
+        views: number;
+        creator_id: string;
+        creator: {
+          id: string;
+          name: string;
+          avatar_url?: string;
+        };
+      };
+    }>;
+    soldNfts: Array<{
+      id: string;
+      price: number;
+      created_at: string;
+      status: string;
+      buyer: {
+        id: string;
+        name: string;
+        avatar_url?: string;
+      };
+      nft: {
+        id: string;
+        title: string;
+        media_url: string;
+        price: number;
+        status: string;
+        sale_type: string;
+        likes: number;
+        views: number;
+      };
+    }>;
+    pendingOrders: Array<{
+      id: string;
+      price: number;
+      created_at: string;
+      status: string;
+      verification_code: string;
+      buyer: {
+        id: string;
+        name: string;
+        avatar_url?: string;
+      };
+      seller: {
+        id: string;
+        name: string;
+        avatar_url?: string;
+      };
       nft: {
         id: string;
         title: string;
@@ -87,11 +133,12 @@ interface ProfileContentProps {
       };
     }>;
     stats: {
-      totalNfts: number;
       totalCreated: number;
+      totalPurchased: number;
+      totalSold: number;
       totalVolume: number;
       totalLikes: number;
-      totalPurchases: number;
+      pendingOrders: number;
     };
   };
 }
@@ -401,6 +448,9 @@ export function ProfileContent({ user }: ProfileContentProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            {isOwnProfile && (
+              <WalletTopUp onSuccess={() => window.location.reload()} />
+            )}
             <Button variant="outline" onClick={handleShareProfile}>
               <Share2 className="w-4 h-4 mr-2" />
               Share
@@ -424,8 +474,16 @@ export function ProfileContent({ user }: ProfileContentProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="grid grid-cols-2 md:grid-cols-5 gap-4 my-8"
+          className="grid grid-cols-2 md:grid-cols-6 gap-4 my-8"
         >
+          {isOwnProfile && (
+            <StatCard
+              icon={Wallet}
+              label="Wallet Balance"
+              value={`${(user.wallet_balance || 0).toFixed(2)} KFC`}
+              color="text-emerald-500"
+            />
+          )}
           <StatCard
             icon={Palette}
             label="Created"
@@ -434,14 +492,14 @@ export function ProfileContent({ user }: ProfileContentProps) {
           />
           <StatCard
             icon={ShoppingBag}
-            label="Owned"
-            value={user.stats.totalNfts}
+            label="Purchased"
+            value={user.stats.totalPurchased}
             color="text-green-500"
           />
           <StatCard
             icon={TrendingUp}
-            label="Volume"
-            value={`${user.stats.totalVolume.toFixed(2)} ETH`}
+            label="Sold"
+            value={user.stats.totalSold}
             color="text-purple-500"
           />
           <StatCard
@@ -450,12 +508,14 @@ export function ProfileContent({ user }: ProfileContentProps) {
             value={user.stats.totalLikes}
             color="text-red-500"
           />
-          <StatCard
-            icon={ShoppingBag}
-            label="Purchased"
-            value={user.stats.totalPurchases}
-            color="text-orange-500"
-          />
+          {isOwnProfile && user.stats.pendingOrders > 0 && (
+            <StatCard
+              icon={Clock}
+              label="Pending"
+              value={user.stats.pendingOrders}
+              color="text-orange-500"
+            />
+          )}
         </motion.div>
 
         {/* Content Tabs */}
@@ -465,56 +525,44 @@ export function ProfileContent({ user }: ProfileContentProps) {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mb-8"
         >
-          <Tabs defaultValue="owned" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="owned">
-                Owned ({user.stats.totalNfts})
-              </TabsTrigger>
+          <Tabs defaultValue="created" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="created">
                 Created ({user.stats.totalCreated})
               </TabsTrigger>
               <TabsTrigger value="purchased">
-                Purchased ({user.stats.totalPurchases})
+                Purchased ({user.stats.totalPurchased})
               </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="owned" className="mt-6">
-              {user.nfts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {user.nfts.map((nft) => (
-                    <NFTCard
-                      key={nft.id}
-                      {...nft}
-                      sale_type={nft.sale_type as 'fixed' | 'auction' | 'bid'}
-                      status={nft.status as 'available' | 'sold' | 'auction' | 'draft'}
-                      creator={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
-                      owner={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Palette className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-medium mb-2">No NFTs owned</h3>
-                  <p className="text-muted-foreground">
-                    {isOwnProfile ? 'Start collecting NFTs to see them here' : 'This user hasn\'t collected any NFTs yet'}
-                  </p>
-                </div>
+              <TabsTrigger value="sold">
+                Sold ({user.stats.totalSold})
+              </TabsTrigger>
+              {isOwnProfile && (
+                <TabsTrigger value="orders">
+                  Orders ({user.stats.pendingOrders})
+                </TabsTrigger>
               )}
-            </TabsContent>
+            </TabsList>
 
             <TabsContent value="created" className="mt-6">
               {user.createdNfts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {user.createdNfts.map((nft) => (
-                    <NFTCard
-                      key={nft.id}
-                      {...nft}
-                      sale_type={nft.sale_type as 'fixed' | 'auction' | 'bid'}
-                      status={nft.status as 'available' | 'sold' | 'auction' | 'draft'}
-                      creator={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
-                      owner={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
-                    />
+                    <div key={nft.id} className="relative">
+                      <NFTCard
+                        {...nft}
+                        sale_type={nft.sale_type as 'fixed' | 'auction' | 'bid'}
+                        status={nft.status as 'available' | 'sold' | 'auction' | 'draft'}
+                        creator={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
+                        owner={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
+                      />
+                      {nft.status === 'sold' && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                          <Badge variant="destructive" className="text-lg font-semibold">
+                            SOLD
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -537,40 +585,63 @@ export function ProfileContent({ user }: ProfileContentProps) {
             </TabsContent>
 
             <TabsContent value="purchased" className="mt-6">
-              {user.purchases.length > 0 ? (
+              {user.purchasedNfts.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {user.purchasedNfts.map((purchase) => (
+                    <NFTCard
+                      key={purchase.id}
+                      {...purchase.nft}
+                      sale_type={purchase.nft.sale_type as 'fixed' | 'auction' | 'bid'}
+                      status={purchase.nft.status as 'available' | 'sold' | 'auction' | 'draft'}
+                      creator={purchase.nft.creator}
+                      owner={{ id: user.id, name: user.name, avatar_url: user.avatar_url }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">No NFTs purchased</h3>
+                  <p className="text-muted-foreground">
+                    {isOwnProfile ? 'Start collecting NFTs to see them here' : 'This user hasn\'t purchased any NFTs yet'}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="sold" className="mt-6">
+              {user.soldNfts.length > 0 ? (
                 <div className="space-y-4">
-                  {user.purchases.map((purchase) => (
-                    <Card key={purchase.id}>
+                  {user.soldNfts.map((sale) => (
+                    <Card key={sale.id}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
                             <Image
-                              src={purchase.nft.media_url}
-                              alt={purchase.nft.title}
+                              src={sale.nft.media_url}
+                              alt={sale.nft.title}
                               fill
                               className="object-cover"
                             />
                           </div>
                           <div className="flex-1">
                             <Link 
-                              href={`/nft/${purchase.nft.id}`}
+                              href={`/nft/${sale.nft.id}`}
                               className="font-medium hover:underline"
                             >
-                              {purchase.nft.title}
+                              {sale.nft.title}
                             </Link>
                             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                              <span>Purchased for {purchase.amount} ETH</span>
+                              <span>Sold for {sale.price} KFC</span>
+                              <span>to {sale.buyer.name}</span>
                               <span>
-                                {formatDistance(new Date(purchase.created_at), new Date(), { addSuffix: true })}
+                                {formatDistance(new Date(sale.created_at), new Date(), { addSuffix: true })}
                               </span>
                             </div>
                           </div>
-                          <Link href={`/nft/${purchase.nft.id}`}>
-                            <Button variant="outline" size="sm">
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              View
-                            </Button>
-                          </Link>
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            Sold
+                          </Badge>
                         </div>
                       </CardContent>
                     </Card>
@@ -578,14 +649,76 @@ export function ProfileContent({ user }: ProfileContentProps) {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-medium mb-2">No purchases</h3>
+                  <TrendingUp className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">No sales yet</h3>
                   <p className="text-muted-foreground">
-                    {isOwnProfile ? 'Start collecting NFTs to see your purchases here' : 'This user hasn\'t made any purchases yet'}
+                    {isOwnProfile ? 'Create and sell NFTs to see your sales here' : 'This user hasn\'t sold any NFTs yet'}
                   </p>
                 </div>
               )}
             </TabsContent>
+
+            {isOwnProfile && (
+              <TabsContent value="orders" className="mt-6">
+                {user.pendingOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {user.pendingOrders.map((order) => (
+                      <Card key={order.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
+                              <Image
+                                src={order.nft.media_url}
+                                alt={order.nft.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <Link 
+                                href={`/nft/${order.nft.id}`}
+                                className="font-medium hover:underline"
+                              >
+                                {order.nft.title}
+                              </Link>
+                              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                <span>{order.price} KFC</span>
+                                <span>
+                                  {order.buyer.id === user.id ? `From ${order.seller.name}` : `To ${order.buyer.name}`}
+                                </span>
+                                <span>
+                                  {formatDistance(new Date(order.created_at), new Date(), { addSuffix: true })}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-orange-600 border-orange-600">
+                                Awaiting Verification
+                              </Badge>
+                              {order.seller.id === user.id && (
+                                <Link href="/qr/generate">
+                                  <Button variant="outline" size="sm">
+                                    Generate QR
+                                  </Button>
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">No pending orders</h3>
+                    <p className="text-muted-foreground">
+                      All your orders have been completed or you don't have any pending transactions
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+            )}
           </Tabs>
         </motion.div>
       </main>

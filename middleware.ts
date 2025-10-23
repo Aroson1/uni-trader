@@ -56,10 +56,10 @@ export async function middleware(request: NextRequest) {
 
   // Use getSession() to properly refresh tokens
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const user = session?.user;
+  // const user = session?.user;
 
   // Protected routes that require authentication
   const protectedRoutes = [

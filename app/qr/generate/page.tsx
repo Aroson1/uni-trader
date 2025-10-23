@@ -29,9 +29,10 @@ import { formatDistance } from 'date-fns';
 
 interface Order {
   id: string;
-  amount: number;
+  price: number;
   status: string;
   created_at: string;
+  verification_code: string;
   buyer: {
     id: string;
     name: string;
@@ -52,7 +53,8 @@ interface QRPayload {
   productId: string;
   buyerId: string;
   sellerId: string;
-  amount: number;
+  price: number;
+  verificationCode: string;
   timestamp: number;
   nonce: string;
 }
@@ -100,15 +102,16 @@ export default function QRGeneratePage() {
         .from('orders')
         .select(`
           id,
-          amount,
+          price,
           status,
           created_at,
+          verification_code,
           buyer:profiles!orders_buyer_id_fkey(id, name),
           seller:profiles!orders_seller_id_fkey(id, name),
           nft:nfts(id, title, media_url)
         `)
-        .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-        .eq('status', 'completed')
+        .eq('seller_id', userId)
+        .eq('status', 'awaiting_verification')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -148,21 +151,9 @@ export default function QRGeneratePage() {
     setGenerating(true);
 
     try {
-      // Create QR payload
-      const payload: QRPayload = {
-        orderId: selectedOrder.id,
-        productId: selectedOrder.nft.id,
-        buyerId: selectedOrder.buyer.id,
-        sellerId: selectedOrder.seller.id,
-        amount: selectedOrder.amount,
-        timestamp: Date.now(),
-        nonce: Math.random().toString(36).substring(2, 15),
-      };
-
-      // Create verification URL
+      // Create verification URL with verification code
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-      const payloadString = btoa(JSON.stringify(payload));
-      const verificationUrl = `${baseUrl}/verify?payload=${payloadString}`;
+      const verificationUrl = `${baseUrl}/verify?code=${selectedOrder.verification_code}&order=${selectedOrder.id}`;
 
       // Generate QR code
       const qrImageDataUrl = await QRCode.toDataURL(verificationUrl, {
@@ -177,14 +168,13 @@ export default function QRGeneratePage() {
       setQrData(verificationUrl);
       setQrImageUrl(qrImageDataUrl);
 
-      // Save QR record to database
+      // Update QR record in database
       const { error } = await supabase
-        .from('qr_records')
-        .insert({
-          order_id: selectedOrder.id,
-          payload_hash: btoa(JSON.stringify(payload)),
-          status: 'generated',
-        });
+        .from('orders')
+        .update({
+          qr_code: verificationUrl,
+        })
+        .eq('id', selectedOrder.id);
 
       if (error) {
         console.error('Failed to save QR record:', error);
@@ -250,9 +240,9 @@ export default function QRGeneratePage() {
         >
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4">Generate QR Code</h1>
+              <h1 className="text-4xl font-bold mb-4">Pending Order Verifications</h1>
               <p className="text-muted-foreground text-lg">
-                Create QR codes for order verification and item transfer
+                Generate QR codes for buyers to verify their purchases and complete payment to you
               </p>
             </div>
 
@@ -278,7 +268,7 @@ export default function QRGeneratePage() {
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{order.nft.title}</span>
                               <span className="text-muted-foreground">
-                                - {order.amount} ETH
+                                - {order.price} KFC
                               </span>
                             </div>
                           </SelectItem>
@@ -306,7 +296,7 @@ export default function QRGeneratePage() {
                         
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Amount</span>
-                          <span className="font-medium text-sm">{selectedOrder.amount} ETH</span>
+                          <span className="font-medium text-sm">{selectedOrder.price} KFC</span>
                         </div>
                         
                         <div className="flex items-center justify-between">
