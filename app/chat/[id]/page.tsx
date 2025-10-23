@@ -58,6 +58,7 @@ export default function ChatConversationPage({
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -75,6 +76,17 @@ export default function ChatConversationPage({
         .eq("id", user.id)
         .single();
 
+      // Check if user is banned
+      if (profile?.banned) {
+        toast.error(
+          `You have been banned from the platform. Reason: ${
+            profile.ban_reason || "Multiple moderation warnings"
+          }`
+        );
+        router.push("/");
+        return;
+      }
+
       setCurrentUser(profile);
       loadConversationData(user.id, params.id);
     };
@@ -83,9 +95,31 @@ export default function ChatConversationPage({
   }, [router, params.id]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Scroll to bottom on initial load or when receiving new messages
+    if (messages.length > 0) {
+      if (isInitialLoad) {
+        // Always scroll on initial load
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        setIsInitialLoad(false);
+      } else if (currentUser) {
+        // Only scroll when receiving new messages AND user is near bottom
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage.sender_id !== currentUser.id) {
+          // Check if user is near the bottom of the chat
+          const chatContainer = messagesEndRef.current?.parentElement;
+          if (chatContainer) {
+            const isNearBottom =
+              chatContainer.scrollTop + chatContainer.clientHeight >=
+              chatContainer.scrollHeight - 100; // 100px threshold
+
+            if (isNearBottom) {
+              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }
+          }
+        }
+      }
+    }
+  }, [messages, currentUser, isInitialLoad]);
 
   const loadConversationData = async (
     userId: string,
@@ -169,7 +203,17 @@ export default function ChatConversationPage({
           },
           (payload) => {
             console.log("Real-time message received:", payload);
-            setMessages((prev) => [...prev, payload.new as Message]);
+
+            // Avoid duplicate messages (in case optimistic update already added it)
+            setMessages((prev) => {
+              const messageExists = prev.some(
+                (msg) => msg.id === payload.new.id
+              );
+              if (messageExists) {
+                return prev; // Don't add duplicate
+              }
+              return [...prev, payload.new as Message];
+            });
 
             // Mark as read if it's not from current user
             if (payload.new.sender_id !== userId) {
@@ -211,22 +255,107 @@ export default function ChatConversationPage({
     setSending(true);
 
     try {
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: conversation.id,
-        sender_id: currentUser.id,
-        content: newMessage.trim(),
+      console.log("🔍 [CHAT] Starting message moderation...");
+
+      // First, moderate the message
+      const moderationResponse = await fetch("/api/chat/moderate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: newMessage.trim(),
+          conversation_id: conversation.id,
+        }),
       });
 
-      if (error) throw error;
+      console.log(
+        "🔍 [CHAT] Moderation response status:",
+        moderationResponse.status
+      );
 
-      // Update conversation last_message_at
-      await supabase
-        .from("conversations")
-        .update({ last_message_at: new Date().toISOString() })
-        .eq("id", conversation.id);
+      if (!moderationResponse.ok) {
+        console.error(
+          "❌ [CHAT] Moderation service error:",
+          moderationResponse.status
+        );
+        throw new Error("Moderation service error");
+      }
 
+      const moderationResult = await moderationResponse.json();
+      console.log("🔍 [CHAT] Moderation result:", moderationResult);
+
+      // Handle moderation results
+      if (!moderationResult.allowed) {
+        console.log("🚫 [CHAT] Message blocked by moderation");
+        // Message is blocked
+        if (moderationResult.action === "STOP") {
+          toast.error(`Message blocked: ${moderationResult.reason}`);
+        } else if (moderationResult.action === "WARN") {
+          toast.error(
+            `Message blocked: ${moderationResult.reason} (${moderationResult.warnings}/3 warnings)`
+          );
+        } else if (moderationResult.action === "BANNED") {
+          toast.error(
+            `You have been banned from the platform: ${moderationResult.reason}`
+          );
+          // Redirect to home page or show ban message
+          router.push("/");
+        } else {
+          toast.error(`Message blocked: ${moderationResult.reason}`);
+        }
+        setSending(false);
+        return;
+      }
+
+      // Show warning if applicable (this shouldn't happen with new logic, but keeping for safety)
+      if (moderationResult.action === "WARN") {
+        console.log("⚠️ [CHAT] Message warned by moderation");
+        toast.warning(
+          `Warning: ${moderationResult.reason} (${moderationResult.warnings}/3 warnings)`
+        );
+      } else {
+        console.log("✅ [CHAT] Message allowed by moderation");
+      }
+
+      // Message is allowed, proceed with sending
+      const messageToSend = newMessage.trim();
       setNewMessage("");
+
+      // Optimistic update - add message immediately to UI
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        conversation_id: conversation.id,
+        sender_id: currentUser.id,
+        content: messageToSend,
+        read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, tempMessage]);
+
+      // Send message via API
+      const response = await fetch("/api/chat/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          conversation_id: conversation.id,
+          content: messageToSend,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send message");
+      }
+
+      // Remove the temporary message (real-time will add the real one)
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
     } catch (error: any) {
+      // Remove the temporary message on error
+      setMessages((prev) => prev.filter((msg) => msg.id.startsWith("temp-")));
       toast.error("Failed to send message");
       console.error("Error sending message:", error);
     } finally {

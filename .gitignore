@@ -59,3 +59,8 @@ pids
 .supabase
 .next/
 out
+
+# Python services
+python-services/__pycache__/
+python-services/*.pyc
+python-services/*.pyo

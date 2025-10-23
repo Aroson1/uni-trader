@@ -1,24 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  MessageCircle, 
-  ArrowLeft,
-  Send,
-  User
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MessageCircle, ArrowLeft, Send, User } from "lucide-react";
+import { toast } from "sonner";
 
 interface UserProfile {
   id: string;
@@ -41,13 +36,13 @@ interface NFTData {
 export default function NewChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const targetUserId = searchParams.get('user');
-  const nftId = searchParams.get('nft');
-  
+  const targetUserId = searchParams.get("user");
+  const nftId = searchParams.get("nft");
+
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
   const [nftData, setNftData] = useState<NFTData | null>(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
@@ -55,79 +50,98 @@ export default function NewChatPage() {
     const initializeChat = async () => {
       try {
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
-          router.push('/auth/login');
+          router.push("/auth/login");
           return;
         }
-        
+
         const { data: currentProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
           .single();
-        
+
         if (!currentProfile) {
-          toast.error('Profile not found');
-          router.push('/');
+          toast.error("Profile not found");
+          router.push("/");
           return;
         }
-        
+
+        // Check if user is banned
+        if (currentProfile.banned) {
+          toast.error(
+            `You have been banned from the platform. Reason: ${
+              currentProfile.ban_reason || "Multiple moderation warnings"
+            }`
+          );
+          router.push("/");
+          return;
+        }
+
         setCurrentUser(currentProfile);
 
         // Get target user if specified
         if (targetUserId) {
           if (targetUserId === user.id) {
-            toast.error('Cannot start a conversation with yourself');
-            router.push('/chat');
+            toast.error("Cannot start a conversation with yourself");
+            router.push("/chat");
             return;
           }
 
           const { data: targetProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', targetUserId)
+            .from("profiles")
+            .select("*")
+            .eq("id", targetUserId)
             .single();
-          
+
           if (!targetProfile) {
-            toast.error('User not found');
-            router.push('/chat');
+            toast.error("User not found");
+            router.push("/chat");
             return;
           }
-          
+
           setTargetUser(targetProfile);
         }
 
         // Get NFT data if specified
         if (nftId) {
           const { data: nftInfo } = await supabase
-            .from('nfts')
-            .select(`
+            .from("nfts")
+            .select(
+              `
               id,
               title,
               media_url,
               price,
               owner:owner_id(id, name)
-            `)
-            .eq('id', nftId)
+            `
+            )
+            .eq("id", nftId)
             .single();
-          
+
           if (nftInfo) {
             setNftData({
               ...nftInfo,
-              owner: Array.isArray(nftInfo.owner) ? nftInfo.owner[0] : nftInfo.owner
+              owner: Array.isArray(nftInfo.owner)
+                ? nftInfo.owner[0]
+                : nftInfo.owner,
             });
-            
+
             // Set default message if we have NFT context
             if (!message) {
-              setMessage(`Hi! I'm interested in your NFT "${nftInfo.title}". Is it still available?`);
+              setMessage(
+                `Hi! I'm interested in your NFT "${nftInfo.title}". Is it still available?`
+              );
             }
           }
         }
       } catch (error) {
-        console.error('Error initializing chat:', error);
-        toast.error('Failed to load chat');
-        router.push('/chat');
+        console.error("Error initializing chat:", error);
+        toast.error("Failed to load chat");
+        router.push("/chat");
       } finally {
         setLoading(false);
       }
@@ -138,7 +152,7 @@ export default function NewChatPage() {
 
   const handleStartConversation = async () => {
     if (!targetUser || !currentUser || !message.trim()) {
-      toast.error('Please enter a message');
+      toast.error("Please enter a message");
       return;
     }
 
@@ -146,10 +160,10 @@ export default function NewChatPage() {
 
     try {
       // Create or get existing conversation
-      const response = await fetch('/api/chat/conversations', {
-        method: 'POST',
+      const response = await fetch("/api/chat/conversations", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           participant_id: targetUser.id,
@@ -157,16 +171,16 @@ export default function NewChatPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create conversation');
+        throw new Error("Failed to create conversation");
       }
 
       const { conversation_id } = await response.json();
 
       // Send the first message
-      const messageResponse = await fetch('/api/chat/messages', {
-        method: 'POST',
+      const messageResponse = await fetch("/api/chat/messages", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           conversation_id,
@@ -175,14 +189,14 @@ export default function NewChatPage() {
       });
 
       if (!messageResponse.ok) {
-        throw new Error('Failed to send message');
+        throw new Error("Failed to send message");
       }
 
-      toast.success('Conversation started successfully!');
+      toast.success("Conversation started successfully!");
       router.push(`/chat/${conversation_id}`);
     } catch (error) {
-      console.error('Error starting conversation:', error);
-      toast.error('Failed to start conversation');
+      console.error("Error starting conversation:", error);
+      toast.error("Failed to start conversation");
     } finally {
       setSending(false);
     }
@@ -212,7 +226,7 @@ export default function NewChatPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <motion.div
@@ -222,9 +236,9 @@ export default function NewChatPage() {
           >
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleGoBack}
                 className="p-2"
               >
@@ -244,7 +258,7 @@ export default function NewChatPage() {
                 <div className="flex items-center gap-3">
                   <MessageCircle className="w-5 h-5 text-blue-500" />
                   <CardTitle>
-                    {targetUser ? `Message ${targetUser.name}` : 'New Message'}
+                    {targetUser ? `Message ${targetUser.name}` : "New Message"}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -261,10 +275,12 @@ export default function NewChatPage() {
                     <div>
                       <p className="font-medium">{targetUser.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {targetUser.wallet_address ? 
-                          `${targetUser.wallet_address.slice(0, 6)}...${targetUser.wallet_address.slice(-4)}` :
-                          'NFT Trader'
-                        }
+                        {targetUser.wallet_address
+                          ? `${targetUser.wallet_address.slice(
+                              0,
+                              6
+                            )}...${targetUser.wallet_address.slice(-4)}`
+                          : "NFT Trader"}
                       </p>
                     </div>
                   </div>
@@ -273,7 +289,9 @@ export default function NewChatPage() {
                 {/* NFT Context */}
                 {nftData && (
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h3 className="font-medium text-blue-900 mb-3">About this NFT</h3>
+                    <h3 className="font-medium text-blue-900 mb-3">
+                      About this NFT
+                    </h3>
                     <div className="flex items-center gap-3">
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden">
                         <Image
@@ -300,7 +318,9 @@ export default function NewChatPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Your Message</label>
                   <Textarea
-                    placeholder={`Hi${targetUser ? ` ${targetUser.name}` : ''}! I'm interested in your NFT...`}
+                    placeholder={`Hi${
+                      targetUser ? ` ${targetUser.name}` : ""
+                    }! I'm interested in your NFT...`}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={6}
@@ -313,14 +333,14 @@ export default function NewChatPage() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={handleGoBack}
                     className="flex-1"
                   >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleStartConversation}
                     disabled={!message.trim() || sending}
                     className="flex-1"
@@ -354,7 +374,7 @@ export default function NewChatPage() {
           </motion.div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
