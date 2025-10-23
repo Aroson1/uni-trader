@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BidComponent } from "@/components/nft/bid-component";
 import { Separator } from "@/components/ui/separator";
 import { Countdown } from "@/components/ui/countdown";
 import { Input } from "@/components/ui/input";
@@ -21,36 +22,11 @@ import {
   Share2,
   Clock,
   User,
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { BidComponent } from '@/components/nft/bid-component';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Countdown } from '@/components/ui/countdown';
-import { Input } from '@/components/ui/input';
-import { 
-  Heart, 
-  Eye, 
-  Share2, 
-  Clock, 
-  User, 
-  Wallet,
   TrendingUp,
   MessageCircle,
-  ExternalLink,
-  Gavel
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { formatDistance } from 'date-fns';
+} from "lucide-react";
+import { toast } from "sonner";
+import { formatDistance } from "date-fns";
 
 interface NFTDetailsContentProps {
   nft: {
@@ -398,33 +374,35 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                 <BidComponent
                   nftId={nft.id}
                   currentPrice={nft.price}
-                  saleType={nft.sale_type as 'fixed' | 'auction' | 'bid'}
+                  saleType={nft.sale_type as "fixed" | "auction" | "bid"}
                   auctionEndTime={nft.auction_end_time}
                   onBidPlaced={() => {
                     // Refresh bids data
                     const fetchBids = async () => {
                       const { data } = await supabase
-                        .from('bids')
-                        .select(`
+                        .from("bids")
+                        .select(
+                          `
                           id,
                           amount,
                           status,
                           created_at,
                           bidder:profiles(id, name, avatar_url)
-                        `)
-                        .eq('nft_id', nft.id)
-                        .eq('status', 'active')
-                        .order('amount', { ascending: false });
-                      
+                        `
+                        )
+                        .eq("nft_id", nft.id)
+                        .eq("status", "active")
+                        .order("amount", { ascending: false });
+
                       if (data) {
                         setCurrentBids(data as any);
                       }
                     };
                     fetchBids();
-                    toast.success('Bid placed successfully!');
+                    toast.success("Bid placed successfully!");
                   }}
                   onPurchase={() => {
-                    toast.success('NFT purchased successfully!');
+                    toast.success("NFT purchased successfully!");
                     // You might want to redirect to success page
                   }}
                 />
