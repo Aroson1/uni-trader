@@ -5,12 +5,51 @@ import { createBrowserClient } from "@supabase/ssr";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase environment variables");
+}
+
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    // Auto refresh token before expiry
     autoRefreshToken: true,
+    // Persist session in local storage
     persistSession: true,
+    // Detect OAuth flow in URL
     detectSessionInUrl: true,
+    // Use PKCE flow for better security
     flowType: "pkce",
+    // Store session in cookies for SSR
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    // Storage key to avoid conflicts
+    storageKey: "supabase.auth.token",
+  },
+  cookies: {
+    // Custom cookie handling for better reliability
+    get(name: string) {
+      if (typeof document === "undefined") return null;
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(";").shift();
+      return null;
+    },
+    set(name: string, value: string, options: any) {
+      if (typeof document === "undefined") return;
+      let cookie = `${name}=${value}`;
+      if (options?.maxAge) cookie += `; max-age=${options.maxAge}`;
+      if (options?.domain) cookie += `; domain=${options.domain}`;
+      if (options?.path) cookie += `; path=${options.path}`;
+      if (options?.sameSite) cookie += `; samesite=${options.sameSite}`;
+      if (options?.secure) cookie += "; secure";
+      document.cookie = cookie;
+    },
+    remove(name: string, options: any) {
+      if (typeof document === "undefined") return;
+      let cookie = `${name}=; max-age=0`;
+      if (options?.domain) cookie += `; domain=${options.domain}`;
+      if (options?.path) cookie += `; path=${options.path}`;
+      document.cookie = cookie;
+    },
   },
 });
 
@@ -157,7 +196,7 @@ export type Database = {
           nft_id: string;
           buyer_id: string;
           seller_id: string;
-          amount: number;
+          price: number;
           currency: string;
           status:
             | "pending"
@@ -165,7 +204,8 @@ export type Database = {
             | "completed"
             | "cancelled"
             | "failed"
-            | "refunded";
+            | "refunded"
+            | "awaiting_verification";
           payment_method: string;
           transaction_hash: string | null;
           gas_fee: number | null;
@@ -176,13 +216,17 @@ export type Database = {
           created_at: string;
           updated_at: string;
           completed_at: string | null;
+          verification_code?: string | null;
+          verified_at?: string | null;
+          qr_code?: string | null;
+          type?: string;
         };
         Insert: {
           id?: string;
           nft_id: string;
           buyer_id: string;
           seller_id: string;
-          amount: number;
+          price: number;
           currency?: string;
           status?:
             | "pending"
@@ -190,7 +234,8 @@ export type Database = {
             | "completed"
             | "cancelled"
             | "failed"
-            | "refunded";
+            | "refunded"
+            | "awaiting_verification";
           payment_method?: string;
           transaction_hash?: string | null;
           gas_fee?: number | null;
@@ -201,13 +246,17 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           completed_at?: string | null;
+          verification_code?: string | null;
+          verified_at?: string | null;
+          qr_code?: string | null;
+          type?: string;
         };
         Update: {
           id?: string;
           nft_id?: string;
           buyer_id?: string;
           seller_id?: string;
-          amount?: number;
+          price?: number;
           currency?: string;
           status?:
             | "pending"
@@ -215,7 +264,8 @@ export type Database = {
             | "completed"
             | "cancelled"
             | "failed"
-            | "refunded";
+            | "refunded"
+            | "awaiting_verification";
           payment_method?: string;
           transaction_hash?: string | null;
           gas_fee?: number | null;
@@ -226,6 +276,10 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           completed_at?: string | null;
+          verification_code?: string | null;
+          verified_at?: string | null;
+          qr_code?: string | null;
+          type?: string;
         };
       };
       bids: {

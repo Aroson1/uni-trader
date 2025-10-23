@@ -28,7 +28,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
-  const { user, profile, signOut } = useAuthStore();
+  const { user, profile, signOut, loading: authLoading } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -119,11 +119,17 @@ export function Header() {
                       <Avatar className="w-8 h-8">
                         <AvatarImage src={profile?.avatar_url || undefined} />
                         <AvatarFallback>
-                          {profile?.name?.charAt(0) || "U"}
+                          {authLoading
+                            ? "..."
+                            : profile?.name?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
                       <span className="hidden sm:block text-sm font-medium">
-                        {profile?.name || "User"}
+                        {authLoading ? (
+                          <span className="inline-block w-16 h-4 bg-muted animate-pulse rounded"></span>
+                        ) : (
+                          profile?.name || "User"
+                        )}
                       </span>
                     </button>
                   </DropdownMenuTrigger>

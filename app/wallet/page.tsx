@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/lib/store';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { WalletTopUp } from '@/components/wallet/wallet-top-up';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/lib/store";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { WalletTopUp } from "@/components/wallet/wallet-top-up";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Wallet,
   TrendingUp,
@@ -39,18 +39,18 @@ import {
   Clock,
   DollarSign,
   CreditCard,
-  ShoppingCart
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { formatDistance } from 'date-fns';
+  ShoppingCart,
+} from "lucide-react";
+import { toast } from "sonner";
+import { formatDistance } from "date-fns";
 
 interface Transaction {
   id: string;
-  type: 'deposit' | 'purchase' | 'sale' | 'bid';
+  type: "deposit" | "purchase" | "sale" | "bid";
   amount: number;
   description: string;
   timestamp: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: "completed" | "pending" | "failed";
   nftTitle?: string;
   hash?: string;
 }
@@ -65,7 +65,7 @@ interface Payment {
 
 export default function WalletPage() {
   const router = useRouter();
-  const { user, profile, fetchProfile } = useAuthStore();
+  const { user, profile, fetchProfile, loading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -76,26 +76,29 @@ export default function WalletPage() {
   const portfolioValue = walletBalance * KFC_TO_INR_RATE;
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking user
+    if (authLoading) return;
+
     if (!user) {
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
-    
+
     loadWalletData();
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const loadWalletData = async () => {
     if (!user) return;
-    
+
     setLoading(true);
-    
+
     try {
       // Fetch payments history
       const { data: paymentsData, error: paymentsError } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .from("payments")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (!paymentsError && paymentsData) {
         setPayments(paymentsData);
@@ -103,37 +106,41 @@ export default function WalletPage() {
 
       // Fetch transaction history (orders, bids)
       const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
+        .from("orders")
+        .select(
+          `
           *,
           nft:nfts(title)
-        `)
+        `
+        )
         .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
+        .order("created_at", { ascending: false });
 
       const { data: bidsData, error: bidsError } = await supabase
-        .from('bids')
-        .select(`
+        .from("bids")
+        .select(
+          `
           *,
           nft:nfts(title)
-        `)
-        .eq('bidder_id', user.id)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .eq("bidder_id", user.id)
+        .order("created_at", { ascending: false });
 
       // Combine and format transactions
       const allTransactions: Transaction[] = [];
 
       // Add payment deposits
       if (paymentsData) {
-        paymentsData.forEach(payment => {
-          if (payment.status === 'completed') {
+        paymentsData.forEach((payment) => {
+          if (payment.status === "completed") {
             allTransactions.push({
               id: `payment-${payment.id}`,
-              type: 'deposit',
+              type: "deposit",
               amount: payment.kfc_amount,
               description: `KFC purchase via Stripe`,
               timestamp: payment.created_at,
-              status: 'completed'
+              status: "completed",
             });
           }
         });
@@ -141,41 +148,49 @@ export default function WalletPage() {
 
       // Add orders
       if (ordersData) {
-        ordersData.forEach(order => {
+        ordersData.forEach((order) => {
           allTransactions.push({
             id: `order-${order.id}`,
-            type: order.buyer_id === user.id ? 'purchase' : 'sale',
+            type: order.buyer_id === user.id ? "purchase" : "sale",
             amount: order.price,
-            description: order.buyer_id === user.id ? 'NFT Purchase' : 'NFT Sale',
+            description:
+              order.buyer_id === user.id ? "NFT Purchase" : "NFT Sale",
             timestamp: order.created_at,
             status: order.status,
-            nftTitle: order.nft?.title
+            nftTitle: order.nft?.title,
           });
         });
       }
 
       // Add bids
       if (bidsData) {
-        bidsData.forEach(bid => {
+        bidsData.forEach((bid) => {
           allTransactions.push({
             id: `bid-${bid.id}`,
-            type: 'bid',
+            type: "bid",
             amount: bid.amount,
-            description: 'Bid placed',
+            description: "Bid placed",
             timestamp: bid.created_at,
-            status: bid.status === 'accepted' ? 'completed' : bid.status === 'active' ? 'pending' : 'failed',
-            nftTitle: bid.nft?.title
+            status:
+              bid.status === "accepted"
+                ? "completed"
+                : bid.status === "active"
+                ? "pending"
+                : "failed",
+            nftTitle: bid.nft?.title,
           });
         });
       }
 
       // Sort by timestamp
-      allTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      allTransactions.sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
       setTransactions(allTransactions);
-      
     } catch (error) {
-      console.error('Error loading wallet data:', error);
-      toast.error('Failed to load wallet data');
+      console.error("Error loading wallet data:", error);
+      toast.error("Failed to load wallet data");
     } finally {
       setLoading(false);
     }
@@ -186,18 +201,18 @@ export default function WalletPage() {
     await fetchProfile();
     await loadWalletData();
     setRefreshing(false);
-    toast.success('Wallet refreshed');
+    toast.success("Wallet refreshed");
   };
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'deposit':
+      case "deposit":
         return <ArrowDownLeft className="w-4 h-4 text-green-500" />;
-      case 'purchase':
+      case "purchase":
         return <ShoppingCart className="w-4 h-4 text-blue-500" />;
-      case 'sale':
+      case "sale":
         return <TrendingUp className="w-4 h-4 text-green-500" />;
-      case 'bid':
+      case "bid":
         return <CreditCard className="w-4 h-4 text-purple-500" />;
       default:
         return <ArrowUpRight className="w-4 h-4" />;
@@ -206,18 +221,18 @@ export default function WalletPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'pending':
+      case "pending":
         return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'failed':
+      case "failed":
         return <AlertCircle className="w-4 h-4 text-red-500" />;
       default:
         return <Clock className="w-4 h-4" />;
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -235,7 +250,7 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -246,7 +261,7 @@ export default function WalletPage() {
                 Manage your KFC balance and transaction history
               </p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -254,7 +269,9 @@ export default function WalletPage() {
                 onClick={handleRefresh}
                 disabled={refreshing}
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
               <WalletTopUp onSuccess={() => handleRefresh()} />
@@ -271,7 +288,9 @@ export default function WalletPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{walletBalance.toFixed(2)} KFC</div>
+                <div className="text-2xl font-bold">
+                  {walletBalance.toFixed(2)} KFC
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   Available for trading
                 </p>
@@ -286,7 +305,9 @@ export default function WalletPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${portfolioValue.toFixed(2)}</div>
+                <div className="text-2xl font-bold">
+                  ${portfolioValue.toFixed(2)}
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   At ₹{KFC_TO_INR_RATE}/KFC
                 </p>
@@ -312,7 +333,9 @@ export default function WalletPage() {
           {/* Main Content */}
           <Tabs defaultValue="transactions" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="transactions">Transaction History</TabsTrigger>
+              <TabsTrigger value="transactions">
+                Transaction History
+              </TabsTrigger>
               <TabsTrigger value="payments">Payment History</TabsTrigger>
             </TabsList>
 
@@ -328,7 +351,9 @@ export default function WalletPage() {
                   {transactions.length === 0 ? (
                     <div className="text-center py-8">
                       <Wallet className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-lg font-medium mb-2">No transactions yet</p>
+                      <p className="text-lg font-medium mb-2">
+                        No transactions yet
+                      </p>
                       <p className="text-muted-foreground">
                         Your transaction history will appear here
                       </p>
@@ -343,30 +368,45 @@ export default function WalletPage() {
                           <div className="flex items-center gap-3">
                             {getTransactionIcon(transaction.type)}
                             <div>
-                              <p className="font-medium">{transaction.description}</p>
+                              <p className="font-medium">
+                                {transaction.description}
+                              </p>
                               {transaction.nftTitle && (
                                 <p className="text-sm text-muted-foreground">
                                   {transaction.nftTitle}
                                 </p>
                               )}
                               <p className="text-xs text-muted-foreground">
-                                {formatDistance(new Date(transaction.timestamp), new Date(), { addSuffix: true })}
+                                {formatDistance(
+                                  new Date(transaction.timestamp),
+                                  new Date(),
+                                  { addSuffix: true }
+                                )}
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-3 text-right">
                             <div>
-                              <p className={`font-medium ${
-                                transaction.type === 'deposit' || transaction.type === 'sale' 
-                                  ? 'text-green-600' 
-                                  : 'text-red-600'
-                              }`}>
-                                {transaction.type === 'deposit' || transaction.type === 'sale' ? '+' : '-'}
+                              <p
+                                className={`font-medium ${
+                                  transaction.type === "deposit" ||
+                                  transaction.type === "sale"
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {transaction.type === "deposit" ||
+                                transaction.type === "sale"
+                                  ? "+"
+                                  : "-"}
                                 {transaction.amount} KFC
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                ₹{(transaction.amount * KFC_TO_INR_RATE).toFixed(2)}
+                                ₹
+                                {(transaction.amount * KFC_TO_INR_RATE).toFixed(
+                                  2
+                                )}
                               </p>
                             </div>
                             {getStatusIcon(transaction.status)}
@@ -391,7 +431,9 @@ export default function WalletPage() {
                   {payments.length === 0 ? (
                     <div className="text-center py-8">
                       <CreditCard className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-lg font-medium mb-2">No payments yet</p>
+                      <p className="text-lg font-medium mb-2">
+                        No payments yet
+                      </p>
                       <p className="text-muted-foreground mb-4">
                         Add KFC to your wallet to start trading
                       </p>
@@ -409,11 +451,15 @@ export default function WalletPage() {
                             <div>
                               <p className="font-medium">KFC Purchase</p>
                               <p className="text-xs text-muted-foreground">
-                                {formatDistance(new Date(payment.created_at), new Date(), { addSuffix: true })}
+                                {formatDistance(
+                                  new Date(payment.created_at),
+                                  new Date(),
+                                  { addSuffix: true }
+                                )}
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-3 text-right">
                             <div>
                               <p className="font-medium text-green-600">
@@ -423,8 +469,12 @@ export default function WalletPage() {
                                 ${payment.amount.toFixed(2)} USD
                               </p>
                             </div>
-                            <Badge 
-                              variant={payment.status === 'completed' ? 'default' : 'secondary'}
+                            <Badge
+                              variant={
+                                payment.status === "completed"
+                                  ? "default"
+                                  : "secondary"
+                              }
                             >
                               {payment.status}
                             </Badge>
@@ -439,7 +489,7 @@ export default function WalletPage() {
           </Tabs>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

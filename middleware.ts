@@ -17,16 +17,19 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
+          // Update the request cookies
           request.cookies.set({
             name,
             value,
             ...options,
           });
+          // Create a new response with updated cookies
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           });
+          // Set cookies on the response
           response.cookies.set({
             name,
             value,
@@ -34,16 +37,19 @@ export async function middleware(request: NextRequest) {
           });
         },
         remove(name: string, options: CookieOptions) {
+          // Update the request cookies
           request.cookies.set({
             name,
             value: "",
             ...options,
           });
+          // Create a new response with updated cookies
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           });
+          // Remove cookies from the response
           response.cookies.set({
             name,
             value: "",
@@ -54,12 +60,13 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Use getSession() to properly refresh tokens
+  // IMPORTANT: Use getSession() instead of getUser()
+  // getSession() will automatically refresh the session if needed
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  // const user = session?.user;
+  const user = session?.user;
 
   // Protected routes that require authentication
   const protectedRoutes = [

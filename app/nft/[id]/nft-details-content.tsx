@@ -67,7 +67,7 @@ interface NFTDetailsContentProps {
     }>;
     orders: Array<{
       id: string;
-      amount: number;
+      price: number;
       status: string;
       created_at: string;
       buyer: {
@@ -531,7 +531,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold">{order.amount} ETH</p>
+                            <p className="font-bold">{order.price} ETH</p>
                             <Badge
                               variant={
                                 order.status === "completed"
