@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, User, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistance } from "date-fns";
+import { getAnonymousDisplayName } from "@/lib/anonymous-chat";
 
 interface Message {
   id: string;
@@ -70,8 +71,8 @@ export default function ChatConversationPage({
       // Use profile from auth hook or create fallback
       const userProfile = profile || {
         id: user.id,
-        name: user.email?.split('@')[0] || 'User',
-        avatar_url: null
+        name: user.email?.split("@")[0] || "User",
+        avatar_url: null,
       };
 
       setCurrentUser(userProfile);
@@ -412,7 +413,10 @@ export default function ChatConversationPage({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h2 className="font-semibold">
-                        {conversation.otherUser.name}
+                        {getAnonymousDisplayName(
+                          conversation.otherUser,
+                          currentUser?.id
+                        )}
                       </h2>
                     </div>
                   </div>

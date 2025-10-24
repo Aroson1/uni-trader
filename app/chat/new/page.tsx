@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, ArrowLeft, Send, User } from "lucide-react";
 import { toast } from "sonner";
+import { getAnonymousDisplayName } from "@/lib/anonymous-chat";
 
 interface UserProfile {
   id: string;
@@ -35,7 +36,12 @@ interface NFTData {
 }
 
 export default function NewChatPage() {
-  const { user, profile, loading: authLoading, isReady } = useRequireAuth('/chat/new');
+  const {
+    user,
+    profile,
+    loading: authLoading,
+    isReady,
+  } = useRequireAuth("/chat/new");
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetUserId = searchParams.get("user");
@@ -55,17 +61,19 @@ export default function NewChatPage() {
     const initializeChat = async () => {
       try {
         // Use user and profile from auth hook instead of fetching again
-        const currentProfile: UserProfile = profile ? {
-          id: profile.id,
-          name: profile.name,
-          avatar_url: profile.avatar_url || undefined,
-          wallet_address: profile.wallet_address || undefined
-        } : {
-          id: user.id,
-          name: user.email?.split('@')[0] || 'User',
-          avatar_url: undefined,
-          wallet_address: undefined
-        };
+        const currentProfile: UserProfile = profile
+          ? {
+              id: profile.id,
+              name: profile.name,
+              avatar_url: profile.avatar_url || undefined,
+              wallet_address: profile.wallet_address || undefined,
+            }
+          : {
+              id: user.id,
+              name: user.email?.split("@")[0] || "User",
+              avatar_url: undefined,
+              wallet_address: undefined,
+            };
 
         setCurrentUser(currentProfile);
 
@@ -244,7 +252,12 @@ export default function NewChatPage() {
                 <div className="flex items-center gap-3">
                   <MessageCircle className="w-5 h-5 text-blue-500" />
                   <CardTitle>
-                    {targetUser ? `Message ${targetUser.name}` : "New Message"}
+                    {targetUser
+                      ? `Message ${getAnonymousDisplayName(
+                          targetUser,
+                          currentUser?.id
+                        )}`
+                      : "New Message"}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -259,7 +272,9 @@ export default function NewChatPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{targetUser.name}</p>
+                      <p className="font-medium">
+                        {getAnonymousDisplayName(targetUser, currentUser?.id)}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {targetUser.wallet_address
                           ? `${targetUser.wallet_address.slice(
@@ -293,7 +308,11 @@ export default function NewChatPage() {
                           {nftData.price} KFC
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Owner: {nftData.owner.name}
+                          Owner:{" "}
+                          {getAnonymousDisplayName(
+                            nftData.owner,
+                            currentUser?.id
+                          )}
                         </p>
                       </div>
                     </div>
@@ -305,7 +324,12 @@ export default function NewChatPage() {
                   <label className="text-sm font-medium">Your Message</label>
                   <Textarea
                     placeholder={`Hi${
-                      targetUser ? ` ${targetUser.name}` : ""
+                      targetUser
+                        ? ` ${getAnonymousDisplayName(
+                            targetUser,
+                            currentUser?.id
+                          )}`
+                        : ""
                     }! I'm interested in your item...`}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
