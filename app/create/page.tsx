@@ -183,7 +183,7 @@ export default function CreatePage() {
 
   const handleCreateNFT = async () => {
     if (!currentUser) {
-      toast.error('Please login to create NFT');
+      toast.error('Please login to create item');
       return;
     }
 
@@ -205,7 +205,7 @@ export default function CreatePage() {
       const mediaUrl = await uploadFileToSupabase(formData.file);
       setIsUploading(false);
 
-      // Create NFT record
+      // Create Item record
       const nftData = {
         title: formData.title,
         description: formData.description,
@@ -232,14 +232,14 @@ export default function CreatePage() {
         .single();
 
       if (error) {
-        throw new Error(`Failed to create NFT: ${error.message}`);
+        throw new Error(`Failed to create Item: ${error.message}`);
       }
 
-      toast.success('NFT created successfully!');
+      toast.success('Item created successfully!');
       router.push(`/nft/${nft.id}`);
       
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create NFT');
+      toast.error(error.message || 'Failed to create item');
     } finally {
       setIsCreating(false);
       setIsUploading(false);
@@ -273,9 +273,9 @@ export default function CreatePage() {
         >
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4">Create New NFT</h1>
+              <h1 className="text-4xl font-bold mb-4">Create New Listing</h1>
               <p className="text-muted-foreground text-lg">
-                Upload your digital asset and create your NFT on UniTrader
+                Upload your digital asset and create your listing on UniTrader
               </p>
             </div>
 
@@ -368,14 +368,14 @@ export default function CreatePage() {
               {/* Form Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle>NFT Details</CardTitle>
+                  <CardTitle>Item Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="title">Title *</Label>
                     <Input
                       id="title"
-                      placeholder="Enter NFT title"
+                      placeholder="Enter item title"
                       value={formData.title}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     />
@@ -385,7 +385,7 @@ export default function CreatePage() {
                     <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
-                      placeholder="Describe your NFT"
+                      placeholder="Describe your item"
                       rows={4}
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -562,7 +562,7 @@ export default function CreatePage() {
 
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-xl font-bold">{formData.title || 'Untitled NFT'}</h3>
+                      <h3 className="text-xl font-bold">{formData.title || 'Untitled Item'}</h3>
                       <p className="text-muted-foreground">{formData.description || 'No description'}</p>
                     </div>
 
@@ -578,7 +578,7 @@ export default function CreatePage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Price</p>
                       <p className="text-2xl font-bold">
-                        {formData.price ? `${formData.price} ETH` : '0.00 ETH'}
+                        {formData.price ? `${formData.price} KFC` : '0.00 KFC'}
                       </p>
                       <p className="text-sm text-muted-foreground capitalize">
                         {formData.saleType} sale
@@ -591,7 +591,7 @@ export default function CreatePage() {
                       className="w-full"
                       size="lg"
                     >
-                      {isUploading ? 'Uploading...' : isCreating ? 'Creating NFT...' : 'Create NFT'}
+                      {isUploading ? 'Uploading...' : isCreating ? 'Creating Listing...' : 'Create Listing'}
                     </Button>
                   </div>
                 </div>

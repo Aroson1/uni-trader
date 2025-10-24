@@ -50,7 +50,7 @@ export function Footer() {
               <span className="text-xl font-bold">Unitrader</span>
             </Link>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              The next-generation NFT marketplace for digital art, collectibles, and unique digital assets.
+              The next-generation Item marketplace for digital art, collectibles, and unique digital assets.
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (

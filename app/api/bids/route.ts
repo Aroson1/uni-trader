@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient wallet balance' }, { status: 400 });
     }
 
-    // Check if NFT exists and user is not the creator/owner
+    // Check if Item exists and user is not the creator/owner
     const { data: nft, error: nftError } = await supabase
       .from('nfts')
       .select('creator_id, owner_id, status, sale_type, auction_end_time')
@@ -40,15 +40,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (nftError || !nft) {
-      return NextResponse.json({ error: 'NFT not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
     if (nft.creator_id === user.id || nft.owner_id === user.id) {
-      return NextResponse.json({ error: 'Cannot bid on your own NFT' }, { status: 400 });
+      return NextResponse.json({ error: 'Cannot bid on your own Item' }, { status: 400 });
     }
 
     if (nft.status !== 'active' && nft.status !== 'available') {
-      return NextResponse.json({ error: 'NFT is not available for bidding' }, { status: 400 });
+      return NextResponse.json({ error: 'Item is not available for bidding' }, { status: 400 });
     }
 
     // For auctions, check if auction has ended
@@ -110,12 +110,12 @@ export async function GET(request: NextRequest) {
     const nft_id = searchParams.get('nft_id');
     
     if (!nft_id) {
-      return NextResponse.json({ error: 'NFT ID required' }, { status: 400 });
+      return NextResponse.json({ error: 'Item ID required' }, { status: 400 });
     }
 
     const supabase = createServerSupabaseClient();
     
-    // Get all active bids for the NFT
+    // Get all active bids for the Item
     const { data: bids, error } = await supabase
       .from('bids')
       .select(`

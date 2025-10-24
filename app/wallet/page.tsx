@@ -144,7 +144,7 @@ export default function WalletPage() {
             id: `order-${order.id}`,
             type: order.buyer_id === user.id ? 'purchase' : 'sale',
             amount: order.price,
-            description: order.buyer_id === user.id ? 'NFT Purchase' : 'NFT Sale',
+            description: order.buyer_id === user.id ? 'Item Purchase' : 'Item Sale',
             timestamp: order.created_at,
             status: order.status,
             nftTitle: order.nft?.title

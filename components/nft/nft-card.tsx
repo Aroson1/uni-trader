@@ -176,7 +176,7 @@ export function NFTCard({
               <p className="text-xs text-muted-foreground mb-1">
                 {sale_type === 'auction' ? 'Current Bid' : 'Price'}
               </p>
-              <p className="font-bold text-lg">{price} ETH</p>
+              <p className="font-bold text-lg">{price} KFC</p>
             </div>
 
             <Button className="btn-primary" size="sm">

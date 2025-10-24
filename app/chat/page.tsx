@@ -262,7 +262,7 @@ export default function ChatPage() {
                     <MessageCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-lg font-medium mb-2">No conversations yet</h3>
                     <p className="text-muted-foreground mb-4">
-                      Start conversations by messaging sellers on NFT detail pages
+                      Start conversations by messaging sellers on Item detail pages
                     </p>
                     <Link href="/explore">
                       <Button>
@@ -283,7 +283,7 @@ export default function ChatPage() {
                     <div className="flex items-center gap-3">
                       <Eye className="w-8 h-8 text-blue-500" />
                       <div>
-                        <p className="font-medium">Browse NFTs</p>
+                        <p className="font-medium">Browse Items</p>
                         <p className="text-sm text-muted-foreground">Find items to chat about</p>
                       </div>
                     </div>
@@ -311,7 +311,7 @@ export default function ChatPage() {
                     <div className="flex items-center gap-3">
                       <Plus className="w-8 h-8 text-purple-500" />
                       <div>
-                        <p className="font-medium">Create NFT</p>
+                        <p className="font-medium">Create Item</p>
                         <p className="text-sm text-muted-foreground">List your items</p>
                       </div>
                     </div>

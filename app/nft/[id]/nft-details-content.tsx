@@ -103,7 +103,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
     if (user && profile) {
       setCurrentUser(profile);
       
-      // Check if user has liked this NFT
+      // Check if user has liked this Item
       const checkLike = async () => {
         const { data: like } = await supabase
           .from("likes")
@@ -177,7 +177,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
 
   const handleLike = async () => {
     if (!currentUser) {
-      toast.error("Please login to like this NFT");
+      toast.error("Please login to like this Item");
       return;
     }
 
@@ -213,7 +213,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
 
     const amount = parseFloat(bidAmount);
     if (!amount || amount <= highestBid) {
-      toast.error(`Bid must be higher than ${highestBid} ETH`);
+      toast.error(`Bid must be higher than ${highestBid} KFC`);
       return;
     }
 
@@ -272,7 +272,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* NFT Image */}
+          {/* Item Image */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -301,7 +301,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
             </div>
           </motion.div>
 
-          {/* NFT Details */}
+          {/* Item Details */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -382,10 +382,10 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                   <div className="text-center py-8">
                     <div className="mb-4">
                       <h3 className="text-lg font-semibold text-muted-foreground">
-                        {currentUser.id === nft.creator.id ? "You created this NFT" : "You own this NFT"}
+                        {currentUser.id === nft.creator.id ? "You created this Item" : "You own this Item"}
                       </h3>
                       <p className="text-sm text-muted-foreground mt-2">
-                        You cannot bid on or purchase your own NFT
+                        You cannot bid on or purchase your own Item
                       </p>
                     </div>
                     <div className="flex items-center justify-center gap-4 p-4 bg-muted rounded-lg">
@@ -431,7 +431,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                       toast.success("Bid placed successfully!");
                     }}
                     onPurchase={() => {
-                      toast.success("NFT purchased successfully!");
+                      toast.success("Item purchased successfully!");
                       // You might want to redirect to success page
                     }}
                   />
@@ -513,7 +513,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold">{bid.amount} ETH</p>
+                            <p className="font-bold">{bid.amount} KFC</p>
                             {index === 0 && (
                               <Badge variant="default" className="text-xs">
                                 Highest bid
@@ -561,7 +561,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold">{order.amount} ETH</p>
+                            <p className="font-bold">{order.amount} KFC</p>
                             <Badge
                               variant={
                                 order.status === "completed"
@@ -587,7 +587,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
             <TabsContent value="details" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>NFT Details</CardTitle>
+                  <CardTitle>Item Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

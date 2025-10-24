@@ -92,7 +92,7 @@ export default function NewChatPage() {
           setTargetUser(targetProfile);
         }
 
-        // Get NFT data if specified
+        // Get Item data if specified
         if (nftId) {
           const { data: nftInfo } = await supabase
             .from("nfts")
@@ -116,10 +116,10 @@ export default function NewChatPage() {
                 : nftInfo.owner,
             });
 
-            // Set default message if we have NFT context
+            // Set default message if we have Item context
             if (!message) {
               setMessage(
-                `Hi! I'm interested in your NFT "${nftInfo.title}". Is it still available?`
+                `Hi! I'm interested in your Item "${nftInfo.title}". Is it still available?`
               );
             }
           }
@@ -194,13 +194,13 @@ export default function NewChatPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+      <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded mb-4"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
+              <div className="h-8 bg-muted rounded mb-4"></div>
+              <div className="h-32 bg-muted rounded"></div>
             </div>
           </div>
         </main>
@@ -210,7 +210,7 @@ export default function NewChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-8">
@@ -266,17 +266,17 @@ export default function NewChatPage() {
                               0,
                               6
                             )}...${targetUser.wallet_address.slice(-4)}`
-                          : "NFT Trader"}
+                          : "Item Trader"}
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* NFT Context */}
+                {/* Item Context */}
                 {nftData && (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h3 className="font-medium text-blue-900 mb-3">
-                      About this NFT
+                  <div className="p-4 bg-muted rounded-lg border border-border">
+                    <h3 className="font-medium text-foreground mb-3">
+                      About this Item
                     </h3>
                     <div className="flex items-center gap-3">
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden">
@@ -290,9 +290,9 @@ export default function NewChatPage() {
                       <div className="flex-1">
                         <h4 className="font-medium">{nftData.title}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {nftData.price} ETH
+                          {nftData.price} KFC
                         </p>
-                        <p className="text-xs text-blue-700">
+                        <p className="text-xs text-muted-foreground">
                           Owner: {nftData.owner.name}
                         </p>
                       </div>
@@ -306,7 +306,7 @@ export default function NewChatPage() {
                   <Textarea
                     placeholder={`Hi${
                       targetUser ? ` ${targetUser.name}` : ""
-                    }! I'm interested in your NFT...`}
+                    }! I'm interested in your item...`}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={6}
@@ -348,11 +348,11 @@ export default function NewChatPage() {
             </Card>
 
             {/* Help Text */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h3 className="font-medium text-blue-900 mb-2">💡 Chat Tips</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="mt-6 p-4 bg-muted rounded-lg border border-border">
+              <h3 className="font-medium text-foreground mb-2">💡 Chat Tips</h3>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Be respectful and professional</li>
-                <li>• Ask specific questions about the NFT</li>
+                <li>• Ask specific questions about the item</li>
                 <li>• Negotiate prices fairly</li>
                 <li>• Use clear communication</li>
               </ul>

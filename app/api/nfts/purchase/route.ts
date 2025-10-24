@@ -13,10 +13,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!nft_id) {
-      return NextResponse.json({ error: 'NFT ID required' }, { status: 400 });
+      return NextResponse.json({ error: 'Item ID required' }, { status: 400 });
     }
 
-    // Get NFT details
+    // Get Item details
     const { data: nft, error: nftError } = await supabase
       .from('nfts')
       .select('*')
@@ -24,22 +24,22 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (nftError || !nft) {
-      return NextResponse.json({ error: 'NFT not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    // Check if NFT is available for purchase
+    // Check if Item is available for purchase
     if (nft.status !== 'active' && nft.status !== 'available') {
-      return NextResponse.json({ error: 'NFT is not available for purchase' }, { status: 400 });
+      return NextResponse.json({ error: 'Item is not available for purchase' }, { status: 400 });
     }
 
     // Check if sale type is fixed price
     if (nft.sale_type !== 'fixed') {
-      return NextResponse.json({ error: 'NFT is not available for direct purchase' }, { status: 400 });
+      return NextResponse.json({ error: 'Item is not available for direct purchase' }, { status: 400 });
     }
 
     // Check if user is not the creator/owner
     if (nft.creator_id === user.id || nft.owner_id === user.id) {
-      return NextResponse.json({ error: 'Cannot purchase your own NFT' }, { status: 400 });
+      return NextResponse.json({ error: 'Cannot purchase your own Item' }, { status: 400 });
     }
 
     // Get buyer's wallet balance
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'NFT purchased successfully',
+      message: 'Item purchased successfully',
       order 
     });
   } catch (error) {

@@ -151,14 +151,14 @@ export function BidComponent({
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('NFT purchased successfully!');
+        toast.success('Item purchased successfully!');
         onPurchase?.();
       } else {
-        toast.error(data.error || 'Failed to purchase NFT');
+        toast.error(data.error || 'Failed to purchase Item');
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      toast.error('Failed to purchase NFT');
+      toast.error('Failed to purchase Item');
     } finally {
       setPurchasing(false);
     }

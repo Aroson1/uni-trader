@@ -622,17 +622,17 @@ export function ProfileContent({ user }: ProfileContentProps) {
               ) : (
                 <div className="text-center py-12">
                   <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-medium mb-2">No NFTs created</h3>
+                  <h3 className="text-lg font-medium mb-2">No items created</h3>
                   <p className="text-muted-foreground mb-4">
                     {isOwnProfile
-                      ? "Create your first NFT to get started"
-                      : "This user hasn't created any NFTs yet"}
+                      ? "Create your first item to get started"
+                      : "This user hasn't created any items yet"}
                   </p>
                   {isOwnProfile && (
                     <Link href="/create">
                       <Button>
                         <Upload className="w-4 h-4 mr-2" />
-                        Create NFT
+                        Create Item
                       </Button>
                     </Link>
                   )}

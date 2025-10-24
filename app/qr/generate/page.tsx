@@ -284,7 +284,7 @@ export default function QRGeneratePage() {
                         </div>
                         
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">NFT</span>
+                          <span className="text-sm text-muted-foreground">Item</span>
                           <span className="font-medium text-sm">{selectedOrder.nft.title}</span>
                         </div>
                         

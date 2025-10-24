@@ -221,10 +221,10 @@ export default function HomePage() {
           ) : (
             <div className="col-span-full text-center py-12">
               <p className="text-muted-foreground">
-                No NFTs available yet. Be the first to create one!
+                No items available yet. Be the first to create one!
               </p>
               <Button className="mt-4" asChild>
-                <Link href="/create">Create NFT</Link>
+                <Link href="/create">Create Item</Link>
               </Button>
             </div>
           )}
@@ -277,7 +277,7 @@ export default function HomePage() {
                       Total Sales
                     </p>
                     <p className="font-bold text-lg">
-                      {seller.total_sales.toFixed(2)} ETH
+                      {seller.total_sales.toFixed(2)} KFC
                     </p>
                   </div>
                 </div>
@@ -291,7 +291,7 @@ export default function HomePage() {
         <div className="glass rounded-3xl p-12 text-center relative overflow-hidden">
           <div className="absolute inset-0 gradient-bg opacity-10"></div>
           <div className="relative z-10 max-w-2xl mx-auto">
-            <h2 className="mb-4">Start Your NFT Journey Today</h2>
+            <h2 className="mb-4">Start Your Trading Journey Today</h2>
             <p className="text-lg text-muted-foreground mb-8">
               Create, sell, and collect unique digital assets. Join the
               Unitrader community and be part of the future of digital
