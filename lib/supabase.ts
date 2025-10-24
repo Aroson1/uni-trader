@@ -99,6 +99,7 @@ export type Database = {
           blockchain: string;
           token_id: string | null;
           contract_address: string | null;
+          ar_link: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -128,6 +129,7 @@ export type Database = {
           blockchain?: string;
           token_id?: string | null;
           contract_address?: string | null;
+          ar_link?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -157,6 +159,7 @@ export type Database = {
           blockchain?: string;
           token_id?: string | null;
           contract_address?: string | null;
+          ar_link?: string | null;
           created_at?: string;
           updated_at?: string;
         };

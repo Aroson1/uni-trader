@@ -23,6 +23,7 @@ interface NFT {
   sale_type: "fixed" | "auction";
   auction_end_time?: string | null;
   status: "available" | "sold" | "draft";
+  ar_link?: string | null;
   creator: {
     id: string;
     name: string;
@@ -74,6 +75,7 @@ export default function HomePage() {
           auction_end_time,
           status,
           views,
+          ar_link,
           creator:creator_id(id, name, avatar_url),
           owner:owner_id(id, name, avatar_url),
           likes_count:likes(count)
@@ -208,6 +210,7 @@ export default function HomePage() {
                   views={nft.views || 0}
                   sale_type={nft.sale_type}
                   auction_end_time={nft.auction_end_time}
+                  ar_link={nft.ar_link}
                   status={
                     nft.status === "available"
                       ? "available"

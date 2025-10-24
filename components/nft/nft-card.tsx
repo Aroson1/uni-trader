@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Eye, Clock } from 'lucide-react';
+import { Heart, Eye, Clock, View } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ interface NFTCardProps {
   views: number;
   sale_type: 'fixed' | 'auction' | 'bid';
   auction_end_time?: string | null;
+  ar_link?: string | null;
   owner?: {
     id: string;
     name: string;
@@ -39,6 +40,7 @@ export function NFTCard({
   views,
   sale_type,
   auction_end_time,
+  ar_link,
   owner,
   creator,
   status = 'available',
@@ -94,6 +96,21 @@ export function NFTCard({
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
               <span className="text-white font-bold text-lg">SOLD</span>
             </div>
+          )}
+
+          {/* AR Link Icon */}
+          {ar_link && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(ar_link, '_blank');
+              }}
+              className="absolute top-3 left-3 bg-black/50 hover:bg-black/70 rounded-full p-2 transition-all duration-200 group/ar"
+              title="View in AR"
+            >
+              <View className="w-4 h-4 text-white group-hover/ar:text-blue-400 transition-colors" />
+            </button>
           )}
 
           <button

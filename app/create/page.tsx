@@ -56,6 +56,7 @@ interface CreateNFTForm {
   price: string;
   saleType: 'fixed' | 'auction' | 'bid';
   auctionEndTime: string;
+  ar_link: string;
   file: File | null;
 }
 
@@ -74,6 +75,7 @@ export default function CreatePage() {
     price: '',
     saleType: 'fixed',
     auctionEndTime: '',
+    ar_link: '',
     file: null,
   });
   
@@ -217,6 +219,7 @@ export default function CreatePage() {
         sale_type: formData.saleType,
         category: formData.category,
         tags: formData.tags,
+        ar_link: formData.ar_link || null,
         auction_end_time: formData.saleType === 'auction' ? formData.auctionEndTime : null,
         metadata: {
           fileType: formData.file.type,
@@ -390,6 +393,20 @@ export default function CreatePage() {
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ar_link">AR Link (Optional)</Label>
+                    <Input
+                      id="ar_link"
+                      type="url"
+                      placeholder="https://your-ar-viewer.com/model"
+                      value={formData.ar_link}
+                      onChange={(e) => setFormData(prev => ({ ...prev, ar_link: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Add a link to view this NFT in Augmented Reality
+                    </p>
                   </div>
 
                   <div className="space-y-2">
