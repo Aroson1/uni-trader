@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 import { supabase } from "@/lib/supabase";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
@@ -62,6 +64,10 @@ export default function ChatConversationPage({
   const [sending, setSending] = useState(false);
   const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [realtimeFailed, setRealtimeFailed] = useState(false);
+  const [usingPolling, setUsingPolling] = useState(false);
+  const [moderating, setModerating] = useState(false);
+  const moderationToastRef = useRef<string | number | null>(null);
 
   useEffect(() => {
     // Wait for auth to be ready and user to be available
@@ -83,14 +89,14 @@ export default function ChatConversationPage({
   }, [isReady, user, profile, params.id]);
 
   useEffect(() => {
-    // Scroll to bottom on initial load or when receiving new messages
+    // Scroll to bottom on initial load or when receiving new messages from others
     if (messages.length > 0) {
       if (isInitialLoad) {
         // Always scroll on initial load
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         setIsInitialLoad(false);
       } else if (currentUser) {
-        // Only scroll when receiving new messages AND user is near bottom
+        // Only scroll when receiving new messages FROM OTHER USERS
         const lastMessage = messages[messages.length - 1];
         if (lastMessage.sender_id !== currentUser.id) {
           // Check if user is near the bottom of the chat
@@ -105,6 +111,7 @@ export default function ChatConversationPage({
             }
           }
         }
+        // Don't auto-scroll for your own messages - let user stay where they are
       }
     }
   }, [messages, currentUser, isInitialLoad]);
@@ -178,9 +185,16 @@ export default function ChatConversationPage({
         .eq("sender_id", otherUserId)
         .eq("read", false);
 
-      // Set up realtime subscription
+      // Set up realtime subscription with better error handling
+      console.log("Setting up real-time subscription for conversation:", conversationId);
+      
       const channel = supabase
-        .channel(`conversation-${conversationId}`)
+        .channel(`conversation-${conversationId}`, {
+          config: {
+            broadcast: { self: true },
+            presence: { key: userId },
+          },
+        })
         .on(
           "postgres_changes",
           {
@@ -198,22 +212,54 @@ export default function ChatConversationPage({
                 (msg) => msg.id === payload.new.id
               );
               if (messageExists) {
+                console.log("Message already exists, skipping duplicate");
                 return prev; // Don't add duplicate
               }
+              console.log("Adding new message to state");
               return [...prev, payload.new as Message];
             });
 
             // Mark as read if it's not from current user
             if (payload.new.sender_id !== userId) {
+              console.log("Marking message as read");
               supabase
                 .from("messages")
                 .update({ read: true })
-                .eq("id", payload.new.id);
+                .eq("id", payload.new.id)
+                .then(({ error }) => {
+                  if (error) {
+                    console.error("Error marking message as read:", error);
+                  }
+                });
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe((status, err) => {
           console.log("Real-time subscription status:", status);
+          if (err) {
+            console.error("Real-time subscription error:", err);
+          }
+          
+          if (status === 'SUBSCRIBED') {
+            console.log("✅ Real-time subscription successful");
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error("❌ Real-time channel error - switching to polling");
+            setRealtimeFailed(true);
+            setUsingPolling(true);
+            toast.error("Using polling mode");
+          } else if (status === 'TIMED_OUT') {
+            console.error("❌ Real-time subscription timed out - switching to polling");
+            setRealtimeFailed(true);
+            setUsingPolling(true);
+            toast.error("Using polling mode");
+          } else if (status === 'CLOSED') {
+            console.warn("⚠️ Real-time subscription closed - switching to polling");
+            if (!realtimeFailed) {
+              setRealtimeFailed(true);
+              setUsingPolling(true);
+              toast.warning("Using polling mode");
+            }
+          }
         });
 
       setRealtimeChannel(channel);
@@ -235,15 +281,82 @@ export default function ChatConversationPage({
     };
   }, [realtimeChannel]);
 
+  // Polling fallback when real-time fails
+  useEffect(() => {
+    if (!usingPolling || !conversation?.id || !currentUser?.id) return;
+
+    console.log("🔄 Starting polling mode for chat");
+    
+    const pollForNewMessages = async () => {
+      try {
+        const { data: newMessages, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversation.id)
+          .gt('created_at', messages[messages.length - 1]?.created_at || new Date(0).toISOString())
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Polling error:', error);
+          return;
+        }
+
+        if (newMessages && newMessages.length > 0) {
+          console.log('📨 Polling found new messages:', newMessages.length);
+          
+          setMessages(prev => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
+            
+            if (uniqueNewMessages.length > 0) {
+              // Mark messages as read if they're not from current user
+              uniqueNewMessages.forEach(message => {
+                if (message.sender_id !== currentUser.id) {
+                  supabase
+                    .from('messages')
+                    .update({ read: true })
+                    .eq('id', message.id)
+                    .then(({ error }) => {
+                      if (error) console.error('Error marking message as read:', error);
+                    });
+                }
+              });
+              
+              return [...prev, ...uniqueNewMessages];
+            }
+            
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    };
+
+    // Poll every 1 second
+    const pollingInterval = setInterval(pollForNewMessages, 1000);
+
+    return () => {
+      console.log("🛑 Stopping polling mode");
+      clearInterval(pollingInterval);
+    };
+  }, [usingPolling, conversation?.id, currentUser?.id, messages]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newMessage.trim() || !conversation || !currentUser) return;
 
     setSending(true);
+    setModerating(true);
 
     try {
       console.log("🔍 [CHAT] Starting message moderation...");
+      
+      // Show moderation progress toast
+      moderationToastRef.current = toast.loading("🔍 Checking message content...", {
+        description: "Ensuring your message meets community guidelines"
+      });
 
       // First, moderate the message
       const moderationResponse = await fetch("/api/chat/moderate", {
@@ -267,11 +380,21 @@ export default function ChatConversationPage({
           "❌ [CHAT] Moderation service error:",
           moderationResponse.status
         );
+        if (moderationToastRef.current) {
+          toast.dismiss(moderationToastRef.current);
+        }
+        setModerating(false);
         throw new Error("Moderation service error");
       }
 
       const moderationResult = await moderationResponse.json();
       console.log("🔍 [CHAT] Moderation result:", moderationResult);
+      
+      // Moderation complete - dismiss loading toast
+      if (moderationToastRef.current) {
+        toast.dismiss(moderationToastRef.current);
+      }
+      setModerating(false);
 
       // Handle moderation results
       if (!moderationResult.allowed) {
@@ -292,7 +415,11 @@ export default function ChatConversationPage({
         } else {
           toast.error(`Message blocked: ${moderationResult.reason}`);
         }
+        if (moderationToastRef.current) {
+          toast.dismiss(moderationToastRef.current);
+        }
         setSending(false);
+        setModerating(false);
         return;
       }
 
@@ -344,10 +471,14 @@ export default function ChatConversationPage({
     } catch (error: any) {
       // Remove the temporary message on error
       setMessages((prev) => prev.filter((msg) => msg.id.startsWith("temp-")));
+      if (moderationToastRef.current) {
+        toast.dismiss(moderationToastRef.current);
+      }
       toast.error("Failed to send message");
       console.error("Error sending message:", error);
     } finally {
       setSending(false);
+      setModerating(false);
     }
   };
 
@@ -418,6 +549,17 @@ export default function ChatConversationPage({
                           currentUser?.id
                         )}
                       </h2>
+                      {/* Connection Status Indicator */}
+                      {usingPolling && (
+                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                          Polling Mode
+                        </Badge>
+                      )}
+                      {realtimeChannel && !usingPolling && (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          Real-time
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -475,24 +617,61 @@ export default function ChatConversationPage({
             {/* Message Input */}
             <Card>
               <CardContent className="p-4">
+                {moderating && (
+                  <div className="mb-3 flex justify-end">
+                    <div className="max-w-xs bg-blue-500 rounded-lg p-3">
+                      <SkeletonTheme 
+                        baseColor="rgba(255,255,255,0.2)" 
+                        highlightColor="rgba(255,255,255,0.4)"
+                        borderRadius="0.25rem"
+                      >
+                        <Skeleton height={16} className="mb-1" />
+                        <Skeleton height={16} width="70%" />
+                        <div className="text-xs text-blue-100 mt-1">
+                          Checking content...
+                        </div>
+                      </SkeletonTheme>
+                    </div>
+                  </div>
+                )}
+                
                 <form
                   onSubmit={handleSendMessage}
                   className="flex items-center gap-2"
                 >
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1"
-                    disabled={sending}
-                  />
+                  <div className="flex-1 relative">
+                    {moderating ? (
+                      <SkeletonTheme 
+                        baseColor="#f3f4f6" 
+                        highlightColor="#e5e7eb"
+                        borderRadius="0.5rem"
+                      >
+                        <Skeleton 
+                          height={40} 
+                          className="rounded-lg"
+                        />
+                      </SkeletonTheme>
+                    ) : (
+                      <Input
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type a message..."
+                        className="w-full"
+                        disabled={sending}
+                      />
+                    )}
+                  </div>
 
                   <Button
                     type="submit"
-                    disabled={!newMessage.trim() || sending}
+                    disabled={!newMessage.trim() || sending || moderating}
                     size="sm"
                   >
-                    <Send className="w-4 h-4" />
+                    {moderating ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </form>
               </CardContent>

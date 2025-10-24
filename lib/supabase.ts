@@ -12,6 +12,16 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     flowType: "pkce",
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+  global: {
+    headers: {
+      'apikey': supabaseAnonKey,
+    },
+  },
 });
 
 // Keep all your Database types exactly as they are
