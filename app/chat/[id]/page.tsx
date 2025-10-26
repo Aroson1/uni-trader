@@ -62,10 +62,8 @@ export default function ChatConversationPage({
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [realtimeFailed, setRealtimeFailed] = useState(false);
-  const [usingPolling, setUsingPolling] = useState(false);
+  const [usingPolling, setUsingPolling] = useState(true); // Always use polling
   const [moderating, setModerating] = useState(false);
   const moderationToastRef = useRef<string | number | null>(null);
 
@@ -185,84 +183,9 @@ export default function ChatConversationPage({
         .eq("sender_id", otherUserId)
         .eq("read", false);
 
-      // Set up realtime subscription with better error handling
-      console.log("Setting up real-time subscription for conversation:", conversationId);
-      
-      const channel = supabase
-        .channel(`conversation-${conversationId}`, {
-          config: {
-            broadcast: { self: true },
-            presence: { key: userId },
-          },
-        })
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            console.log("Real-time message received:", payload);
-
-            // Avoid duplicate messages (in case optimistic update already added it)
-            setMessages((prev) => {
-              const messageExists = prev.some(
-                (msg) => msg.id === payload.new.id
-              );
-              if (messageExists) {
-                console.log("Message already exists, skipping duplicate");
-                return prev; // Don't add duplicate
-              }
-              console.log("Adding new message to state");
-              return [...prev, payload.new as Message];
-            });
-
-            // Mark as read if it's not from current user
-            if (payload.new.sender_id !== userId) {
-              console.log("Marking message as read");
-              supabase
-                .from("messages")
-                .update({ read: true })
-                .eq("id", payload.new.id)
-                .then(({ error }) => {
-                  if (error) {
-                    console.error("Error marking message as read:", error);
-                  }
-                });
-            }
-          }
-        )
-        .subscribe((status, err) => {
-          console.log("Real-time subscription status:", status);
-          if (err) {
-            console.error("Real-time subscription error:", err);
-          }
-          
-          if (status === 'SUBSCRIBED') {
-            console.log("✅ Real-time subscription successful");
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error("❌ Real-time channel error - switching to polling");
-            setRealtimeFailed(true);
-            setUsingPolling(true);
-            toast.error("Using polling mode");
-          } else if (status === 'TIMED_OUT') {
-            console.error("❌ Real-time subscription timed out - switching to polling");
-            setRealtimeFailed(true);
-            setUsingPolling(true);
-            toast.error("Using polling mode");
-          } else if (status === 'CLOSED') {
-            console.warn("⚠️ Real-time subscription closed - switching to polling");
-            if (!realtimeFailed) {
-              setRealtimeFailed(true);
-              setUsingPolling(true);
-              toast.warning("Using polling mode");
-            }
-          }
-        });
-
-      setRealtimeChannel(channel);
+      // Use polling mode instead of realtime for better reliability
+      console.log("🔄 Chat configured to use polling mode for message updates");
+      setUsingPolling(true);
     } catch (error: any) {
       toast.error("Failed to load conversation");
       console.error("Error loading conversation:", error);
@@ -272,14 +195,13 @@ export default function ChatConversationPage({
     }
   };
 
+  // Cleanup effect - no longer needed for realtime channels
   useEffect(() => {
     return () => {
-      if (realtimeChannel) {
-        console.log("Cleaning up real-time channel");
-        supabase.removeChannel(realtimeChannel);
-      }
+      // Cleanup handled by polling useEffect
+      console.log("Chat component unmounting");
     };
-  }, [realtimeChannel]);
+  }, []);
 
   // Polling fallback when real-time fails
   useEffect(() => {
@@ -333,8 +255,8 @@ export default function ChatConversationPage({
       }
     };
 
-    // Poll every 1 second
-    const pollingInterval = setInterval(pollForNewMessages, 1000);
+    // Poll every 2 seconds for optimal performance
+    const pollingInterval = setInterval(pollForNewMessages, 2000);
 
     return () => {
       console.log("🛑 Stopping polling mode");
@@ -466,7 +388,7 @@ export default function ChatConversationPage({
         throw new Error(errorData.error || "Failed to send message");
       }
 
-      // Remove the temporary message (real-time will add the real one)
+      // Remove the temporary message (polling will fetch the real one)
       setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
     } catch (error: any) {
       // Remove the temporary message on error
@@ -550,16 +472,9 @@ export default function ChatConversationPage({
                         )}
                       </h2>
                       {/* Connection Status Indicator */}
-                      {usingPolling && (
-                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
-                          Polling Mode
-                        </Badge>
-                      )}
-                      {realtimeChannel && !usingPolling && (
-                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                          Real-time
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        Polling Mode
+                      </Badge>
                     </div>
                   </div>
 
