@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
     '/api/nfts', // Public NFT listing
     '/api/orders', // Public order listing
     '/api/qr', // QR code generation
+
   ];
   
   const isPublicApiRoute = publicApiRoutes.some(route => 
@@ -33,15 +34,19 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value;
+          let x = request.cookies.get(name)?.value;
+          console.log(`\x1b[34m[Middleware] Get cookie: ${name}=${x}\x1b[0m`);
+          return x;
         },
         set(name: string, value: string, options: CookieOptions) {
           // Update both request and response cookies
+          console.log(`\x1b[34m[Middleware] Set cookie: ${name}=${value}\x1b[0m`);
           request.cookies.set({ name, value, ...options });
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
           // Remove from both request and response cookies
+          console.log(`\x1b[34m[Middleware] Remove cookie: ${name}\x1b[0m`);
           const removeOptions = { ...options, maxAge: 0 };
           request.cookies.set({ name, value: "", ...removeOptions });
           response.cookies.set({ name, value: "", ...removeOptions });
@@ -69,6 +74,7 @@ export async function middleware(request: NextRequest) {
       session = authSession;
       user = authSession?.user || null;
       console.log(`\x1b[32m[Middleware] Session status on ${pathname}: ${user ? 'authenticated' : 'anonymous'}\x1b[0m`);
+      console.log('\x1b[32m[Middleware] User info:\x1b[0m', user);
     }
   } catch (error) {
     console.error(`\x1b[31m[Middleware] Auth error on ${pathname}:\x1b[0m`, error);

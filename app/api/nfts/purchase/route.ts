@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { nft_id } = await request.json();
     
-    const supabase = createServerSupabaseClient();
+    const supabase = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {

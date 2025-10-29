@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { nft_id, amount } = await request.json();
     
-    const supabase = createServerSupabaseClient();
+    const supabase = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Item ID required' }, { status: 400 });
     }
 
-    const supabase = createServerSupabaseClient();
+    const supabase = createServerSupabaseClient({ throwOnCookieWrite: false });
     
     // Get all active bids for the Item
     const { data: bids, error } = await supabase

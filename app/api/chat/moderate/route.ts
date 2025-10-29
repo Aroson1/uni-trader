@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   console.log("🔍 [MODERATION] Starting moderation check");
 
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const {
       data: { user },
       error: authError,

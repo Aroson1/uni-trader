@@ -39,6 +39,13 @@ export function Header() {
     { name: "Sell Item", href: "/create" },
   ];
 
+  if (!user) {
+    console.log("User not logged in - showing limited header");
+  }
+  else{
+    console.log("User logged in - showing full header for user:", user);
+  }
+
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

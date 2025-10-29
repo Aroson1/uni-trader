@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createServerSupabaseClient();
+    const supabase = createServerSupabaseClient({ throwOnCookieWrite: false });
     
     // Find expired auctions that are still active
     const { data: expiredAuctions, error: fetchError } = await supabase

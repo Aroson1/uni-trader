@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BidComponent } from "@/components/nft/bid-component";
+import { NFTCard } from "@/components/nft/nft-card";
 import { Separator } from "@/components/ui/separator";
 import { Countdown } from "@/components/ui/countdown";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
   const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [currentBids, setCurrentBids] = useState(nft.bids);
   const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
+  const [relatedNFTs, setRelatedNFTs] = useState<any[]>([]);
 
   const isAuction = nft.sale_type === "auction";
   const highestBid = currentBids[0]?.amount || nft.price;
@@ -168,12 +170,47 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
 
     setRealtimeChannel(channel);
 
+    // Fetch related NFTs based on category
+    const fetchRelatedNFTs = async () => {
+      const { data } = await supabase
+        .from("nfts")
+        .select(
+          `
+          id,
+          title,
+          media_url,
+          price,
+          sale_type,
+          auction_end_time,
+          status,
+          creator:creator_id(id, name, avatar_url),
+          owner:owner_id(id, name, avatar_url),
+          likes(user_id),
+          views
+        `
+        )
+        .eq("category", nft.category)
+        .eq("status", "available")
+        .neq("id", nft.id)
+        .limit(4);
+
+      if (data) {
+        setRelatedNFTs(
+          data.map((item: any) => ({
+            ...item,
+            likes: item.likes?.length || 0,
+          }))
+        );
+      }
+    };
+    fetchRelatedNFTs();
+
     return () => {
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-  }, [nft.id]);
+  }, [nft.id, nft.category]);
 
   const handleLike = async () => {
     if (!currentUser) {
@@ -270,16 +307,17 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Item Image */}
+      <main className="container mx-auto px-4 py-8 lg:py-12 max-w-7xl">
+        {/* Main NFT Details Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-16">
+          {/* Left: NFT Image */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="relative"
+            className="relative lg:sticky lg:top-8 h-fit"
           >
-            <div className="aspect-square relative rounded-2xl overflow-hidden bg-muted">
+            <div className="aspect-square relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-200/20 to-purple-200/20 backdrop-blur-sm border border-border/50 shadow-2xl">
               <Image
                 src={nft.media_url}
                 alt={nft.title}
@@ -287,345 +325,339 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                 className="object-cover"
                 priority
               />
-              <div className="absolute top-4 left-4 flex items-center gap-2">
-                <Badge variant="secondary" className="bg-black/50 text-white">
-                  {nft.category}
-                </Badge>
-                {isAuction && (
-                  <Badge variant="destructive" className="bg-red-500/80">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Auction
-                  </Badge>
-                )}
-              </div>
             </div>
           </motion.div>
 
-          {/* Item Details */}
+          {/* Right: NFT Details */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="space-y-6"
+            className="space-y-5"
           >
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{nft.title}</h1>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Eye className="w-4 h-4" />
-                  <span>{nft.views} views</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Heart className="w-4 h-4" />
-                  <span>{likes} likes</span>
-                </div>
+            {/* Title and Action Buttons */}
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground flex-1 leading-tight">
+                {nft.title}
+              </h1>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full hover:bg-secondary/80"
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
               </div>
-              <p className="text-muted-foreground leading-relaxed">
+            </div>
+
+            {/* Stats - Views and Likes */}
+            <div className="flex gap-6 items-center">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Eye className="h-5 w-5" />
+                <span className="font-medium text-base">{nft.views}</span>
+              </div>
+              <button
+                onClick={handleLike}
+                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Heart
+                  className={`h-5 w-5 transition-all ${isLiked ? "fill-primary text-primary scale-110" : ""}`}
+                />
+                <span className="font-medium text-base">{likes}</span>
+              </button>
+            </div>
+
+            {/* Owner & Creator Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-secondary/50 backdrop-blur-sm rounded-2xl p-3.5 border border-border/30 hover:border-primary/30 transition-colors">
+                <p className="text-xs text-muted-foreground mb-2">Owned By</p>
+                <Link href={`/profile/${nft.owner.id}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                  <Avatar className="h-9 w-9 border-2 border-primary/20">
+                    <AvatarImage src={nft.owner.avatar_url} />
+                    <AvatarFallback className="text-xs">
+                      {nft.owner.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold text-sm truncate">{nft.owner.name}</span>
+                </Link>
+              </div>
+
+              <div className="bg-secondary/50 backdrop-blur-sm rounded-2xl p-3.5 border border-border/30 hover:border-accent/30 transition-colors">
+                <p className="text-xs text-muted-foreground mb-2">Create By</p>
+                <Link href={`/profile/${nft.creator.id}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                  <Avatar className="h-9 w-9 border-2 border-accent/20">
+                    <AvatarImage src={nft.creator.avatar_url} />
+                    <AvatarFallback className="text-xs">
+                      {nft.creator.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold text-sm truncate">{nft.creator.name}</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="bg-secondary/20 rounded-2xl p-4 border border-border/20">
+              <p className="text-muted-foreground leading-relaxed text-sm">
                 {nft.description}
               </p>
             </div>
 
-            {/* Owner & Creator Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={nft.owner.avatar_url} />
-                      <AvatarFallback>
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Owned by</p>
-                      <Link
-                        href={`/profile/${nft.owner.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {nft.owner.name}
-                      </Link>
-                    </div>
+            {/* Bid Info Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-card to-card/50 rounded-2xl p-4 border border-border/30 shadow-md">
+                <p className="text-xs text-muted-foreground mb-1.5">Current Bid</p>
+                <p className="text-2xl font-bold">{highestBid} ETH</p>
+                <p className="text-xs text-muted-foreground mt-0.5">≈ ${(highestBid * 3000).toFixed(2)}</p>
+              </div>
+
+              {isAuctionActive && nft.auction_end_time ? (
+                <div className="bg-gradient-to-br from-card to-card/50 rounded-2xl p-4 border border-border/30 shadow-md">
+                  <p className="text-xs text-muted-foreground mb-1.5">Countdown</p>
+                  <div className="text-xl font-bold font-mono">
+                    <Countdown endTime={nft.auction_end_time} />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={nft.creator.avatar_url} />
-                      <AvatarFallback>
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Created by
-                      </p>
-                      <Link
-                        href={`/profile/${nft.creator.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {nft.creator.name}
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Price & Auction Info */}
-            <Card>
-              <CardContent className="p-6">
-                {/* Only show BidComponent if user is not the owner or creator */}
-                {currentUser && (currentUser.id === nft.owner.id || currentUser.id === nft.creator.id) ? (
-                  <div className="text-center py-8">
-                    <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-muted-foreground">
-                        {currentUser.id === nft.creator.id ? "You created this Item" : "You own this Item"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        You cannot bid on or purchase your own Item
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-center gap-4 p-4 bg-muted rounded-lg">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Current Price</p>
-                        <p className="text-2xl font-bold">{nft.price} KFC</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Sale Type</p>
-                        <p className="text-lg font-medium capitalize">{nft.sale_type}</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <BidComponent
-                    nftId={nft.id}
-                    currentPrice={nft.price}
-                    saleType={nft.sale_type as "fixed" | "auction" | "bid"}
-                    auctionEndTime={nft.auction_end_time}
-                    onBidPlaced={() => {
-                      // Refresh bids data
-                      const fetchBids = async () => {
-                        const { data } = await supabase
-                          .from("bids")
-                          .select(
-                            `
-                            id,
-                            amount,
-                            status,
-                            created_at,
-                            bidder:profiles(id, name, avatar_url)
-                          `
-                          )
-                          .eq("nft_id", nft.id)
-                          .eq("status", "active")
-                          .order("amount", { ascending: false });
-
-                        if (data) {
-                          setCurrentBids(data as any);
-                        }
-                      };
-                      fetchBids();
-                      toast.success("Bid placed successfully!");
-                    }}
-                    onPurchase={() => {
-                      toast.success("Item purchased successfully!");
-                      // You might want to redirect to success page
-                    }}
-                  />
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleLike} className="flex-1">
-                <Heart
-                  className={`w-4 h-4 mr-2 ${
-                    isLiked ? "fill-current text-red-500" : ""
-                  }`}
-                />
-                {likes}
-              </Button>
-              <Button variant="outline" onClick={handleShare}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </Button>
-              {currentUser && currentUser.id !== nft.owner.id && (
-                <Link href={`/chat/new?user=${nft.owner.id}&nft=${nft.id}`}>
-                  <Button variant="outline">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Chat with Seller
-                  </Button>
-                </Link>
+                </div>
+              ) : (
+                <div className="bg-gradient-to-br from-card to-card/50 rounded-2xl p-4 border border-border/30 shadow-md">
+                  <p className="text-xs text-muted-foreground mb-1.5">Sale Type</p>
+                  <p className="text-2xl font-bold capitalize">{nft.sale_type}</p>
+                </div>
               )}
             </div>
-          </motion.div>
-        </div>
 
-        {/* Tabs Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-12"
-        >
-          <Tabs defaultValue="bids" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="bids">
-                Bids ({currentBids.length})
-              </TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-              <TabsTrigger value="details">Details</TabsTrigger>
-            </TabsList>
+            {/* Place Bid Button or Owner Message */}
+            {/* Chat with Seller Button */}
+            {currentUser && currentUser.id !== nft.owner.id && (
+              <Link href={`/chat/new?user=${nft.owner.id}&nft=${nft.id}`} className="block">
+                <Button variant="outline" className="w-full rounded-2xl h-12 hover:bg-secondary/80 transition-colors">
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Chat with Seller
+                </Button>
+              </Link>
+            )}
+            {currentUser && (currentUser.id === nft.owner.id || currentUser.id === nft.creator.id) ? (
+              <div className="bg-secondary/30 rounded-2xl p-5 border border-border/30 text-center">
+                <p className="text-muted-foreground font-medium">
+                  {currentUser.id === nft.creator.id ? "You created this Item" : "You own this Item"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  You cannot bid on or purchase your own Item
+                </p>
+              </div>
+            ) : (
+              <BidComponent
+                nftId={nft.id}
+                currentPrice={nft.price}
+                saleType={nft.sale_type as "fixed" | "auction" | "bid"}
+                auctionEndTime={nft.auction_end_time}
+                onBidPlaced={() => {
+                  const fetchBids = async () => {
+                    const { data } = await supabase
+                      .from("bids")
+                      .select(
+                        `
+                        id,
+                        amount,
+                        status,
+                        created_at,
+                        bidder:profiles(id, name, avatar_url)
+                      `
+                      )
+                      .eq("nft_id", nft.id)
+                      .eq("status", "active")
+                      .order("amount", { ascending: false });
 
-            <TabsContent value="bids" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Bid History</CardTitle>
-                </CardHeader>
-                <CardContent>
+                    if (data) {
+                      setCurrentBids(data as any);
+                    }
+                  };
+                  fetchBids();
+                  toast.success("Bid placed successfully!");
+                }}
+                onPurchase={() => {
+                  toast.success("Item purchased successfully!");
+                }}
+              />
+            )}
+
+            {/* Tabs Section */}
+            <Tabs defaultValue="history" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-secondary/50 h-11">
+                <TabsTrigger value="history" className="text-sm">Bid History</TabsTrigger>
+                <TabsTrigger value="info" className="text-sm">Info</TabsTrigger>
+                <TabsTrigger value="provenance" className="text-sm">Provenance</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="history" className="space-y-3 mt-5">
+                <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
                   {currentBids.length > 0 ? (
-                    <div className="space-y-4">
-                      {currentBids.map((bid, index) => (
-                        <div
-                          key={bid.id}
-                          className="flex items-center justify-between p-4 rounded-lg border"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={bid.bidder.avatar_url} />
-                              <AvatarFallback>
-                                {bid.bidder.name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{bid.bidder.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatDistance(
-                                  new Date(bid.created_at),
-                                  new Date(),
-                                  { addSuffix: true }
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold">{bid.amount} KFC</p>
-                            {index === 0 && (
-                              <Badge variant="default" className="text-xs">
-                                Highest bid
-                              </Badge>
-                            )}
+                    currentBids.map((bid) => (
+                      <div
+                        key={bid.id}
+                        className="flex items-center justify-between p-3.5 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all hover:shadow-md border border-transparent hover:border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-11 w-11">
+                            <AvatarImage src={bid.bidder.avatar_url} />
+                            <AvatarFallback className="text-sm">
+                              {bid.bidder.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold text-sm">{bid.bidder.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {bid.created_at ? formatDistance(
+                                new Date(bid.created_at),
+                                new Date(),
+                                { addSuffix: true }
+                              ) : 'placed a bid'}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No bids yet. Be the first to bid!
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="history" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Trading History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {nft.orders.length > 0 ? (
-                    <div className="space-y-4">
-                      {nft.orders.map((order) => (
-                        <div
-                          key={order.id}
-                          className="flex items-center justify-between p-4 rounded-lg border"
-                        >
-                          <div className="flex items-center gap-3">
-                            <TrendingUp className="h-5 w-5 text-green-500" />
-                            <div>
-                              <p className="font-medium">
-                                Purchase by {order.buyer.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatDistance(
-                                  new Date(order.created_at),
-                                  new Date(),
-                                  { addSuffix: true }
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold">{order.amount} KFC</p>
-                            <Badge
-                              variant={
-                                order.status === "completed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {order.status}
-                            </Badge>
-                          </div>
+                        <div className="text-right">
+                          <p className="font-bold text-base">{bid.amount} ETH</p>
+                          <p className="text-xs text-muted-foreground">≈ ${(bid.amount * 3000).toFixed(2)}</p>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No trading history available
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p className="text-sm">No bids yet. Be the first to bid!</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              </TabsContent>
 
-            <TabsContent value="details" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Item Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Token ID</p>
-                      <p className="font-mono">{nft.id}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Category</p>
-                      <p>{nft.category}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Created</p>
-                      <p>{new Date(nft.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sale Type</p>
-                      <p className="capitalize">{nft.sale_type}</p>
-                    </div>
+              <TabsContent value="info" className="mt-5">
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between py-2.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Token ID:</span>
+                    <span className="font-mono text-xs">{nft.id.slice(0, 12)}...</span>
                   </div>
-
+                  <div className="flex justify-between py-2.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Category:</span>
+                    <span className="font-medium text-foreground">{nft.category}</span>
+                  </div>
+                  <div className="flex justify-between py-2.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Sale Type:</span>
+                    <span className="font-medium text-foreground capitalize">{nft.sale_type}</span>
+                  </div>
+                  <div className="flex justify-between py-2.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Created:</span>
+                    <span className="font-medium text-foreground">
+                      {new Date(nft.created_at).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
                   {nft.tags.length > 0 && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Tags</p>
+                    <div className="pt-3">
+                      <p className="text-muted-foreground mb-2.5">Tags:</p>
                       <div className="flex flex-wrap gap-2">
                         {nft.tags.map((tag) => (
-                          <Badge key={tag} variant="outline">
+                          <Badge key={tag} variant="secondary" className="bg-secondary/50 text-xs">
                             {tag}
                           </Badge>
                         ))}
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </motion.div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="provenance" className="mt-5">
+                <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
+                  {nft.orders.length > 0 ? (
+                    nft.orders.map((order) => (
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between p-3.5 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all hover:shadow-md border border-transparent hover:border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-11 w-11 rounded-full bg-green-500/10 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-green-500" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">Purchase by {order.buyer.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistance(
+                                new Date(order.created_at),
+                                new Date(),
+                                { addSuffix: true }
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-base">{order.amount} ETH</p>
+                          <Badge
+                            variant={order.status === "completed" ? "default" : "secondary"}
+                            className="mt-1 text-xs"
+                          >
+                            {order.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p className="text-sm">No trading history available</p>
+                      <p className="text-xs mt-1">This item has not been traded yet</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            
+          </motion.div>
+        </div>
+
+        {/* Related Items Section */}
+        {relatedNFTs.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mt-16 pt-12 border-t border-border/50"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">Explore Related Items</h2>
+                <p className="text-sm text-muted-foreground">More items from the {nft.category} category</p>
+              </div>
+              <Link href={`/explore?category=${nft.category}`}>
+                <Button variant="outline" className="rounded-xl">
+                  View All
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedNFTs.map((relatedNft) => (
+                <NFTCard
+                  key={relatedNft.id}
+                  id={relatedNft.id}
+                  title={relatedNft.title}
+                  media_url={relatedNft.media_url}
+                  price={relatedNft.price}
+                  likes={relatedNft.likes}
+                  views={relatedNft.views}
+                  sale_type={relatedNft.sale_type}
+                  auction_end_time={relatedNft.auction_end_time}
+                  creator={relatedNft.creator}
+                  owner={relatedNft.owner}
+                  status={relatedNft.status}
+                />
+              ))}
+            </div>
+          </motion.section>
+        )}
       </main>
 
       <Footer />

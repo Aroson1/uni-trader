@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {

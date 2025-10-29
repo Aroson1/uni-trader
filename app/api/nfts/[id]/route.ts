@@ -48,7 +48,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {
@@ -120,7 +120,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {

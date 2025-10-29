@@ -257,25 +257,26 @@ export default function HomePage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: i * 0.1 }}
+              className="h-full"
             >
-              <Link href={`/profile/${seller.id}`}>
-                <div className="glass rounded-2xl p-6 hover:scale-105 transition-all cursor-pointer">
+              <Link href={`/profile/${seller.id}`} className="block h-full">
+                <div className="glass rounded-2xl p-6 hover:scale-105 transition-all cursor-pointer h-full flex flex-col">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="relative">
+                    <div className="relative flex-shrink-0">
                       <Avatar className="w-16 h-16">
                         <AvatarImage src={seller.avatar_url || undefined} />
-                        <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{seller.name.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                         {i + 1}
                       </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold">{seller.name}</h4>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold truncate">{seller.name}</h4>
                       <p className="text-sm text-muted-foreground">Creator</p>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-border">
+                  <div className="pt-4 border-t border-border mt-auto">
                     <p className="text-xs text-muted-foreground mb-1">
                       Total Sales
                     </p>
