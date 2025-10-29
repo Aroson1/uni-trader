@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { MessageCircle, ArrowLeft, Send, User } from "lucide-react";
 import { toast } from "sonner";
 import { getAnonymousDisplayName } from "@/lib/anonymous-chat";
@@ -266,7 +267,7 @@ export default function NewChatPage() {
                 {targetUser && (
                   <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={targetUser.avatar_url} />
+                      <AvatarImage src={getUserAvatar(targetUser.name, targetUser.avatar_url)} />
                       <AvatarFallback>
                         <User className="w-6 h-6" />
                       </AvatarFallback>

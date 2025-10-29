@@ -1,6 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+let DEBUG_MODE = false;
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -35,7 +37,7 @@ export async function middleware(request: NextRequest) {
       cookies: {
         get(name: string) {
           let x = request.cookies.get(name)?.value;
-          console.log(`\x1b[34m[Middleware] Get cookie: ${name}=${x}\x1b[0m`);
+          DEBUG_MODE ? console.log(`\x1b[34m[Middleware] Get cookie: ${name}=${x}\x1b[0m`) : null;
           return x;
         },
         set(name: string, value: string, options: CookieOptions) {
@@ -74,7 +76,7 @@ export async function middleware(request: NextRequest) {
       session = authSession;
       user = authSession?.user || null;
       console.log(`\x1b[32m[Middleware] Session status on ${pathname}: ${user ? 'authenticated' : 'anonymous'}\x1b[0m`);
-      console.log('\x1b[32m[Middleware] User info:\x1b[0m', user);
+      DEBUG_MODE ? console.log('\x1b[32m[Middleware] User info:\x1b[0m', user) : null;
     }
   } catch (error) {
     console.error(`\x1b[31m[Middleware] Auth error on ${pathname}:\x1b[0m`, error);

@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { NFTCard } from "@/components/nft/nft-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { ArrowRight, TrendingUp, Users, Zap, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -264,7 +265,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-4 mb-4">
                     <div className="relative flex-shrink-0">
                       <Avatar className="w-16 h-16">
-                        <AvatarImage src={seller.avatar_url || undefined} />
+                        <AvatarImage src={getUserAvatar(seller.name, seller.avatar_url)} />
                         <AvatarFallback>{seller.name.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">

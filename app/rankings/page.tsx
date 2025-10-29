@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -182,7 +183,7 @@ export default function RankingsPage() {
                     <CardContent className="p-6 text-center">
                       <div className="relative inline-block mb-4">
                         <Avatar className="w-20 h-20 border-4 border-gray-400">
-                          <AvatarImage src={sortedSellers[1].avatar_url || undefined} />
+                          <AvatarImage src={getUserAvatar(sortedSellers[1].name, sortedSellers[1].avatar_url)} />
                           <AvatarFallback className="text-xl">
                             {sortedSellers[1].name.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -213,7 +214,7 @@ export default function RankingsPage() {
                     <CardContent className="p-6 text-center">
                       <div className="relative inline-block mb-4">
                         <Avatar className="w-24 h-24 border-4 border-yellow-500 ring-4 ring-yellow-500/20">
-                          <AvatarImage src={sortedSellers[0].avatar_url || undefined} />
+                          <AvatarImage src={getUserAvatar(sortedSellers[0].name, sortedSellers[0].avatar_url)} />
                           <AvatarFallback className="text-2xl">
                             {sortedSellers[0].name.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -247,7 +248,7 @@ export default function RankingsPage() {
                     <CardContent className="p-6 text-center">
                       <div className="relative inline-block mb-4">
                         <Avatar className="w-20 h-20 border-4 border-amber-600">
-                          <AvatarImage src={sortedSellers[2].avatar_url || undefined} />
+                          <AvatarImage src={getUserAvatar(sortedSellers[2].name, sortedSellers[2].avatar_url)} />
                           <AvatarFallback className="text-xl">
                             {sortedSellers[2].name.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -308,7 +309,7 @@ export default function RankingsPage() {
 
                           {/* Avatar & Name */}
                           <Avatar className="w-14 h-14 flex-shrink-0">
-                            <AvatarImage src={seller.avatar_url || undefined} />
+                            <AvatarImage src={getUserAvatar(seller.name, seller.avatar_url)} />
                             <AvatarFallback>
                               {seller.name.charAt(0).toUpperCase()}
                             </AvatarFallback>

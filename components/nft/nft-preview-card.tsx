@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Heart, Eye, Clock, View, Upload } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getUserAvatar } from '@/lib/avatar-generator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -213,7 +214,7 @@ export function NFTPreviewCard({
         {creator && (
           <div className="flex items-center gap-3 pt-1">
             <Avatar className="w-9 h-9 border-2 border-border/50">
-              <AvatarImage src={creator.avatar_url || undefined} />
+              <AvatarImage src={getUserAvatar(creator.name, creator.avatar_url)} />
               <AvatarFallback className="text-xs font-semibold">
                 {creator.name.charAt(0).toUpperCase()}
               </AvatarFallback>

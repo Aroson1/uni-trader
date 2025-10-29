@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Eye, Clock, View } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getUserAvatar } from '@/lib/avatar-generator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -156,7 +157,7 @@ export function NFTCard({
             {creator && (
               <div className="flex items-center gap-2">
                 <Avatar className="w-6 h-6">
-                  <AvatarImage src={creator.avatar_url || undefined} />
+                  <AvatarImage src={getUserAvatar(creator.name, creator.avatar_url)} />
                   <AvatarFallback className="text-xs">
                     {creator.name.charAt(0)}
                   </AvatarFallback>
@@ -173,7 +174,7 @@ export function NFTCard({
             {owner && (
               <div className="flex items-center gap-2">
                 <Avatar className="w-6 h-6">
-                  <AvatarImage src={owner.avatar_url || undefined} />
+                  <AvatarImage src={getUserAvatar(owner.name, owner.avatar_url)} />
                   <AvatarFallback className="text-xs">
                     {owner.name.charAt(0)}
                   </AvatarFallback>

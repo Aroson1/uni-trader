@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, User, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
@@ -457,7 +458,7 @@ export default function ChatConversationPage({
                   </Link>
 
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={conversation.otherUser.avatar_url} />
+                    <AvatarImage src={getUserAvatar(conversation.otherUser.name, conversation.otherUser.avatar_url)} />
                     <AvatarFallback>
                       <User className="h-5 w-5" />
                     </AvatarFallback>

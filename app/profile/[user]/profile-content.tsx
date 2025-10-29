@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useOptionalAuth } from "@/hooks/use-auth";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { WalletTopUp } from "@/components/wallet/wallet-top-up";
@@ -41,6 +42,10 @@ import {
   Copy,
   Check,
   Clock,
+  Twitter,
+  Send,
+  Youtube,
+  Music,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistance } from "date-fns";
@@ -319,57 +324,289 @@ export function ProfileContent({ user }: ProfileContentProps) {
       <Header />
 
       <main className="container mx-auto px-4">
-        {/* Banner Section */}
+        {/* Banner Section with Blurred Background Overlay */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="relative h-64 md:h-80 lg:h-96 -mx-4 mb-16"
+          className="relative h-[400px] mt-8 mb-5 overflow-hidden rounded-3xl"
         >
-          <div className="relative h-full rounded-b-2xl overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-            {user.banner_url && (
-              <Image
-                src={user.banner_url}
-                alt="Profile banner"
-                fill
-                className="object-cover"
-              />
-            )}
-            {isOwnProfile && (
-              <Button
-                size="sm"
-                variant="secondary"
-                className="absolute top-4 right-4"
-                onClick={() => bannerInputRef.current?.click()}
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Edit Banner
-              </Button>
-            )}
+          {/* Background Image with Blur */}
+          <div className="absolute inset-0 rounded-3xl overflow-hidden">
+            <Image
+              src={user.banner_url || "/bg-authors.jpg"}
+              alt="Profile banner"
+              fill
+              className="object-cover blur-sm scale-105"
+              priority
+            />
+            {/* Dark overlay gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
           </div>
 
-          {/* Profile Avatar */}
-          <div className="absolute -bottom-16 left-8">
-            <div className="relative">
-              <Avatar className="w-32 h-32 border-4 border-background">
-                <AvatarImage src={user.avatar_url} />
-                <AvatarFallback className="text-3xl">
-                  <User className="w-16 h-16" />
-                </AvatarFallback>
-              </Avatar>
-              {isOwnProfile && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0"
-                  onClick={() => avatarInputRef.current?.click()}
-                >
-                  <Camera className="w-4 h-4" />
-                </Button>
-              )}
+          {/* Edit Banner Button */}
+          {isOwnProfile ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="absolute top-6 right-6 z-10 backdrop-blur-md bg-white/10 border-white/20 hover:bg-white/20"
+              onClick={() => bannerInputRef.current?.click()}
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Edit Banner
+            </Button>
+          ) : (
+            <div className="flex items-center justify-end p-5">
+              {/* Social Media Links */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="mr-2 rounded-full w-12 h-12 backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/20 text-white"
+              >
+                <Twitter className="w-5 h-5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="mr-2 rounded-full w-12 h-12 backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/20 text-white"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="mr-2 rounded-full w-12 h-12 backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/20 text-white"
+              >
+                <Youtube className="w-5 h-5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="mr-2 rounded-full w-12 h-12 backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/20 text-white"
+              >
+                <Music className="w-5 h-5" />
+              </Button>
+              <Button
+                size="lg"
+                className="mr-2 backdrop-blur-md bg-primary/80 hover:bg-primary text-white font-semibold"
+              >
+                Follow
+              </Button>
+            </div>
+          )}
+
+          {/* Profile Content Overlay */}
+          <div
+            className={`relative h-full flex flex-col mt-3 px-8 ${
+              isOwnProfile ? "justify-center" : "justify-start"
+            }`}
+          >
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6 max-w-7xl w-full">
+              {/* Profile Avatar */}
+              <div className="relative flex-shrink-0">
+                <Avatar className="w-44 h-44 border-4 border-white/20 backdrop-blur-sm shadow-2xl">
+                  <AvatarImage src={getUserAvatar(user.name, user.avatar_url)} />
+                  <AvatarFallback className="text-4xl bg-gradient-to-br from-primary/80 to-purple-600/80">
+                    <User className="w-20 h-20" />
+                  </AvatarFallback>
+                </Avatar>
+                {isOwnProfile && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="absolute bottom-2 right-2 rounded-full w-10 h-10 p-0 backdrop-blur-md bg-white/10 border-white/20 hover:bg-white/20"
+                      onClick={() => avatarInputRef.current?.click()}
+                    >
+                      <Camera className="w-5 h-5" />
+                    </Button>
+                    
+                    {/* Wallet Balance Highlight - Below Avatar */}
+                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-max">
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl blur-md opacity-75 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="relative px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 border-2 border-emerald-400/50 shadow-2xl">
+                          <div className="flex items-center gap-2">
+                            <Wallet className="w-5 h-5 text-white" />
+                            <div className="flex flex-col">
+                              <span className="text-xs text-white/80 font-medium leading-none">Balance</span>
+                              <span className="text-xl font-bold text-white leading-tight">
+                                {(user.wallet_balance || 0).toFixed(2)} KFC
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {!isOwnProfile && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="absolute bottom-2 right-2 rounded-full w-10 h-10 p-0 backdrop-blur-md bg-white/10 border-white/20 hover:bg-white/20"
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    <Camera className="w-5 h-5" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Profile Info */}
+              <div className="flex-1 text-center md:text-left space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-white/80 tracking-wide uppercase">
+                    Author Profile
+                  </p>
+                  <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
+                    {user.name}
+                  </h1>
+                  {user.bio ? (
+                    <p className="text-base md:text-lg text-white/90 max-w-2xl leading-relaxed">
+                      {user.bio}
+                    </p>
+                  ) : (
+                    <p className="text-base md:text-lg text-white/70 max-w-2xl leading-relaxed italic">
+                      ~No Bio~
+                    </p>
+                  )}
+                </div>
+
+                {/* Wallet Address */}
+                {user.wallet_address && (
+                  <div className="flex items-center justify-center md:justify-start gap-2">
+                    <div className="px-4 py-2 rounded-xl border border-white/20 backdrop-blur-md bg-white/10 flex items-center gap-2">
+                      <code className="text-sm text-white/90 font-mono">
+                        {user.wallet_address.slice(0, 6)}...
+                        {user.wallet_address.slice(-6)}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 hover:bg-white/20"
+                        onClick={handleCopyAddress}
+                      >
+                        {copied ? (
+                          <Check className="w-4 h-4 text-green-400" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-white/80" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stats Chips */}
+                <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                  <Badge className="px-4 py-2 backdrop-blur-md bg-blue-500/20 text-blue-100 border-blue-400/30 hover:bg-blue-500/30">
+                    <Palette className="w-4 h-4 mr-2" />
+                    {user.stats.totalCreated} Items
+                  </Badge>
+                  <Badge className="px-4 py-2 backdrop-blur-md bg-red-500/20 text-red-100 border-red-400/30 hover:bg-red-500/30">
+                    <Heart className="w-4 h-4 mr-2" />
+                    {user.stats.totalLikes} Likes
+                  </Badge>
+                  <Badge className="px-4 py-2 backdrop-blur-md bg-white/10 text-white/90 border-white/20">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Joined{" "}
+                    {formatDistance(new Date(user.created_at), new Date(), {
+                      addSuffix: true,
+                    })}
+                  </Badge>
+                </div>
+
+                {/* Share/Message Buttons */}
+                <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShareProfile}
+                    className="backdrop-blur-md bg-white/5 border-white/20 hover:bg-white/10 text-white"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share Profile
+                  </Button>
+                  {!isOwnProfile && currentUser && (
+                    <Link href={`/chat/new?user=${user.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="backdrop-blur-md bg-white/5 border-white/20 hover:bg-white/10 text-white"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Message
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-row md:flex-row gap-3 flex-shrink-0">
+                {isOwnProfile ? (
+                  <>
+                    <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="lg"
+                          className="backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/20 text-white"
+                        >
+                          <Edit3 className="w-5 h-5 mr-2" />
+                          Edit Profile
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Profile</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-name">Display Name</Label>
+                            <Input
+                              id="edit-name"
+                              value={editForm.name}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  name: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-bio">Bio</Label>
+                            <Textarea
+                              id="edit-bio"
+                              value={editForm.bio}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  bio: e.target.value,
+                                }))
+                              }
+                              rows={4}
+                            />
+                          </div>
+                          <Button
+                            onClick={handleSaveProfile}
+                            disabled={isUpdating}
+                            className="w-full"
+                          >
+                            {isUpdating ? "Updating..." : "Save Changes"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <WalletTopUp onSuccess={() => window.location.reload()} />
+                  </>
+                ) : (
+                  <></>
+                )}
+              </div>
             </div>
           </div>
 
+          {/* Hidden file inputs */}
           <input
             ref={avatarInputRef}
             type="file"
@@ -384,175 +621,6 @@ export function ProfileContent({ user }: ProfileContentProps) {
             onChange={handleBannerChange}
             className="hidden"
           />
-        </motion.div>
-
-        {/* Profile Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6"
-        >
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-bold">{user.name}</h1>
-              {isOwnProfile && (
-                <Dialog open={isEditing} onOpenChange={setIsEditing}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline">
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Profile</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-name">Display Name</Label>
-                        <Input
-                          id="edit-name"
-                          value={editForm.name}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              name: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-bio">Bio</Label>
-                        <Textarea
-                          id="edit-bio"
-                          value={editForm.bio}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              bio: e.target.value,
-                            }))
-                          }
-                          rows={4}
-                        />
-                      </div>
-                      <Button
-                        onClick={handleSaveProfile}
-                        disabled={isUpdating}
-                        className="w-full"
-                      >
-                        {isUpdating ? "Updating..." : "Save Changes"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </div>
-
-            {user.bio && (
-              <p className="text-muted-foreground max-w-2xl">{user.bio}</p>
-            )}
-
-            <div className="flex items-center gap-4">
-              {user.wallet_address && (
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-muted-foreground" />
-                  <code className="text-sm bg-muted px-2 py-1 rounded">
-                    {user.wallet_address.slice(0, 6)}...
-                    {user.wallet_address.slice(-4)}
-                  </code>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCopyAddress}
-                    className="p-1 h-6 w-6"
-                  >
-                    {copied ? (
-                      <Check className="w-3 h-3" />
-                    ) : (
-                      <Copy className="w-3 h-3" />
-                    )}
-                  </Button>
-                </div>
-              )}
-              <Badge variant="secondary">
-                Joined{" "}
-                {formatDistance(new Date(user.created_at), new Date(), {
-                  addSuffix: true,
-                })}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isOwnProfile && (
-              <WalletTopUp onSuccess={() => window.location.reload()} />
-            )}
-            <Button variant="outline" onClick={handleShareProfile}>
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-            {currentUser && !isOwnProfile && (
-              <>
-                <Link href={`/chat/new?user=${user.id}`}>
-                  <Button variant="outline">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message
-                  </Button>
-                </Link>
-                <Button>Follow</Button>
-              </>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="grid grid-cols-2 md:grid-cols-6 gap-4 my-8"
-        >
-          {isOwnProfile && (
-            <StatCard
-              icon={Wallet}
-              label="Wallet Balance"
-              value={`${(user.wallet_balance || 0).toFixed(2)} KFC`}
-              color="text-emerald-500"
-            />
-          )}
-          <StatCard
-            icon={Palette}
-            label="Created"
-            value={user.stats.totalCreated}
-            color="text-blue-500"
-          />
-          <StatCard
-            icon={ShoppingBag}
-            label="Purchased"
-            value={user.stats.totalPurchased}
-            color="text-green-500"
-          />
-          <StatCard
-            icon={TrendingUp}
-            label="Sold"
-            value={user.stats.totalSold}
-            color="text-purple-500"
-          />
-          <StatCard
-            icon={Heart}
-            label="Likes"
-            value={user.stats.totalLikes}
-            color="text-red-500"
-          />
-          {isOwnProfile && user.stats.pendingOrders > 0 && (
-            <StatCard
-              icon={Clock}
-              label="Pending"
-              value={user.stats.pendingOrders}
-              color="text-orange-500"
-            />
-          )}
         </motion.div>
 
         {/* Content Tabs */}

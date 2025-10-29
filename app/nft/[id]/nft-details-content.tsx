@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { BidComponent } from "@/components/nft/bid-component";
 import { NFTCard } from "@/components/nft/nft-card";
 import { Separator } from "@/components/ui/separator";
@@ -375,7 +376,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                 <p className="text-xs text-muted-foreground mb-2">Owned By</p>
                 <Link href={`/profile/${nft.owner.id}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                   <Avatar className="h-9 w-9 border-2 border-primary/20">
-                    <AvatarImage src={nft.owner.avatar_url} />
+                    <AvatarImage src={getUserAvatar(nft.owner.name, nft.owner.avatar_url)} />
                     <AvatarFallback className="text-xs">
                       {nft.owner.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
@@ -388,7 +389,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                 <p className="text-xs text-muted-foreground mb-2">Create By</p>
                 <Link href={`/profile/${nft.creator.id}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                   <Avatar className="h-9 w-9 border-2 border-accent/20">
-                    <AvatarImage src={nft.creator.avatar_url} />
+                    <AvatarImage src={getUserAvatar(nft.creator.name, nft.creator.avatar_url)} />
                     <AvatarFallback className="text-xs">
                       {nft.creator.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
@@ -501,7 +502,7 @@ export function NFTDetailsContent({ nft }: NFTDetailsContentProps) {
                       >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-11 w-11">
-                            <AvatarImage src={bid.bidder.avatar_url} />
+                            <AvatarImage src={getUserAvatar(bid.bidder.name, bid.bidder.avatar_url)} />
                             <AvatarFallback className="text-sm">
                               {bid.bidder.name.charAt(0).toUpperCase()}
                             </AvatarFallback>

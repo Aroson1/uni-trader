@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuthStore, useThemeStore } from "@/lib/store";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -114,7 +115,7 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-3 px-3 py-2 rounded-xl glass hover:bg-muted transition-all">
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={profile?.avatar_url || undefined} />
+                        <AvatarImage src={getUserAvatar(profile?.name || "User", profile?.avatar_url)} />
                         <AvatarFallback>
                           {profile?.name?.charAt(0) || "U"}
                         </AvatarFallback>
