@@ -34,6 +34,10 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Use profile name if available, otherwise fallback to user email
+  const displayName = profile?.name || user?.email?.split('@')[0] || "User";
+  const displayAvatar = profile?.avatar_url || null;
+
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Explore", href: "/explore" },
@@ -45,6 +49,7 @@ export function Header() {
   }
   else{
     console.log("User logged in - showing full header for user:", user);
+    console.log("Profile data:", profile);
   }
 
   return (
@@ -115,13 +120,13 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-3 px-3 py-2 rounded-xl glass hover:bg-muted transition-all">
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={getUserAvatar(profile?.name || "User", profile?.avatar_url)} />
+                        <AvatarImage src={getUserAvatar(displayName, displayAvatar)} />
                         <AvatarFallback>
-                          {profile?.name?.charAt(0) || "U"}
+                          {displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <span className="hidden sm:block text-sm font-medium">
-                        {profile?.name || "User"}
+                        {displayName}
                       </span>
                     </button>
                   </DropdownMenuTrigger>
