@@ -41,24 +41,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Clear local state immediately
       set({ user: null, profile: null, loading: false });
 
-      // Sign out from Supabase (this clears auth cookies and localStorage)
-      const { error } = await supabase.auth.signOut();
+      // Sign out from Supabase using the 'global' scope
+      // This clears auth cookies and localStorage managed by Supabase
+      // No need to manually clear localStorage - Supabase handles it
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
 
       if (error) {
         console.error("Supabase signOut error:", error);
-      }
-
-      // Clear any additional browser storage that might persist
-      if (typeof window !== "undefined") {
-        // Clear localStorage items that might persist auth state
-        localStorage.removeItem("supabase.auth.token");
-        localStorage.removeItem("supabase.auth.session");
-        // Clear any other app-specific storage
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith("supabase.")) {
-            localStorage.removeItem(key);
-          }
-        });
       }
 
       // Force redirect to home page to clear any cached state
@@ -68,39 +57,107 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Even if there's an error, clear local state and redirect
       set({ user: null, profile: null, loading: false });
 
-      // Clear storage on error too
-      if (typeof window !== "undefined") {
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith("supabase.")) {
-            localStorage.removeItem(key);
-          }
-        });
-      }
-
       window.location.href = "/";
     }
   },
   fetchProfile: async () => {
     const { user } = get();
     if (!user) {
+      console.log("❌ No user to fetch profile for");
       set({ profile: null });
       return;
     }
 
-    // First, try to get existing profile
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
+    try {
+      console.log("📥 Fetching profile for user:", user.id, user.email);
+      
+      // Check if we have a valid session first
+      console.log("🔍 Checking for active session...");
+      
+      const sessionCheckPromise = supabase.auth.getSession();
+      const sessionTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Session check timeout")), 5000)
+      );
+      
+      
+      let sessionData, sessionError;
+      try {
+        const result: any = await Promise.race([sessionCheckPromise, sessionTimeout]);
+        sessionData = result.data;
+        sessionError = result.error;
+        console.log("✅ Session check complete:", { hasSession: !!sessionData?.session, error: sessionError });
+      } catch (timeoutError) {
+        console.error("❌ Session check timed out:", timeoutError);
+        sessionError = timeoutError;
+      }
+      
+      if (sessionError || !sessionData?.session) {
+        console.warn("⚠️ No active session, using metadata fallback. Error:", sessionError?.message || "No session");
+        // Use fallback for now, will be retried on next auth state change
+        const fallbackProfile = {
+          id: user.id,
+          name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "User",
+          email: user.email || null,
+          bio: null,
+          avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+          banner_url: null,
+          wallet_address: null,
+          wallet_balance: 0,
+          is_verified: false,
+          social_links: {},
+          preferences: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        console.log("✅ Set fallback profile:", fallbackProfile.name);
+        set({ profile: fallbackProfile });
+        return;
+      }
+      
+      console.log("✅ Session confirmed, proceeding with database query");
+      
+      // Add timeout to prevent hanging
+      console.log("🔍 Querying profiles table...");
+      const fetchWithTimeout = async () => {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Profile fetch timeout")), 8000)
+        );
+        
+        const fetchPromise = supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+        
+        return Promise.race([fetchPromise, timeoutPromise]);
+      };
 
-    if (existingProfile) {
-      set({ profile: existingProfile });
-      return;
-    }
+      // First, try to get existing profile with timeout
+      let result;
+      try {
+        result = await fetchWithTimeout();
+        console.log("✅ Query complete");
+      } catch (timeoutError) {
+        console.error("❌ Profile query timed out:", timeoutError);
+        throw timeoutError;
+      }
+      
+      const { data: existingProfile, error: fetchError } = result as any;
 
-    // If no profile exists, create one using Google OAuth data
-    if (!existingProfile && !fetchError) {
+      if (fetchError) {
+        console.error("❌ Error fetching profile:", fetchError.message, fetchError);
+        // Don't throw, continue to create profile
+      }
+
+      if (existingProfile) {
+        console.log("✅ Profile found and setting in store:", existingProfile.name);
+        set({ profile: existingProfile });
+        console.log("✅ Profile set complete, current state:", get().profile?.name);
+        return;
+      }
+
+      // If no profile exists, create one using Google OAuth data
+      console.log("⚠️ No profile found, creating new profile...");
       const profileData = {
         id: user.id,
         name:
@@ -119,34 +176,61 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         preferences: {},
       };
 
+      console.log("📤 Inserting new profile:", profileData);
+
       const { data: newProfile, error: createError } = await supabase
         .from("profiles")
         .insert([profileData])
         .select()
         .single();
 
+      console.log("📬 Insert result:", { newProfile, createError });
+
       if (newProfile && !createError) {
+        console.log("✅ Profile created successfully:", newProfile.name);
         set({ profile: newProfile });
+        console.log("✅ New profile set in store:", get().profile?.name);
       } else {
+        console.error("❌ Error creating profile:", createError?.message, createError);
         // Fallback profile if database creation fails
-        set({
-          profile: {
-            id: user.id,
-            name: profileData.name,
-            email: profileData.email,
-            bio: null,
-            avatar_url: profileData.avatar_url,
-            banner_url: null,
-            wallet_address: null,
-            wallet_balance: 0,
-            is_verified: false,
-            social_links: {},
-            preferences: {},
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        });
+        const fallbackProfile = {
+          id: user.id,
+          name: profileData.name,
+          email: profileData.email,
+          bio: null,
+          avatar_url: profileData.avatar_url,
+          banner_url: null,
+          wallet_address: null,
+          wallet_balance: 0,
+          is_verified: false,
+          social_links: {},
+          preferences: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        console.log("⚠️ Using fallback profile:", fallbackProfile.name);
+        set({ profile: fallbackProfile });
       }
+    } catch (error) {
+      console.error("❌ Unexpected error in fetchProfile:", error);
+      // Set fallback profile on any error
+      const fallbackProfile = {
+        id: user.id,
+        name: user.email?.split("@")[0] || "User",
+        email: user.email || null,
+        bio: null,
+        avatar_url: user.user_metadata?.avatar_url || null,
+        banner_url: null,
+        wallet_address: null,
+        wallet_balance: 0,
+        is_verified: false,
+        social_links: {},
+        preferences: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      console.log("⚠️ Using fallback profile after error:", fallbackProfile.name);
+      set({ profile: fallbackProfile });
     }
   },
 }));

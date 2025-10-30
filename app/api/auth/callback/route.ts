@@ -63,24 +63,35 @@ export async function GET(request: NextRequest) {
 
     // Ensure user profile exists
     if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: data.user.id,
-          name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
-          email: data.user.email,
-          avatar_url: data.user.user_metadata?.avatar_url,
-        }, { 
-          onConflict: 'id',
-          ignoreDuplicates: false 
-        });
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            name: data.user.user_metadata?.full_name || 
+                  data.user.user_metadata?.name || 
+                  data.user.email?.split('@')[0] || 'User',
+            email: data.user.email,
+            avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture,
+          }, { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          });
 
-      if (profileError && profileError.code !== '23505') { // Ignore duplicate key errors
-        console.error('[Auth Callback] Profile upsert error:', profileError);
-        // Don't fail the auth process for profile errors
+        if (profileError && profileError.code !== '23505') { // Ignore duplicate key errors
+          console.error('[Auth Callback] Profile upsert error:', profileError);
+          // Don't fail the auth process for profile errors
+        } else {
+          console.log('[Auth Callback] Profile created/updated successfully');
+        }
+      } catch (profileErr) {
+        console.error('[Auth Callback] Failed to create profile:', profileErr);
+        // Continue anyway - profile will be created on first app load
       }
     }
 
+    // Return response with session cookies
+    console.log('[Auth Callback] Redirecting to:', next);
     return response;
 
   } catch (error) {

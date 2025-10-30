@@ -1,28 +1,54 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: "pkce",
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
+// Create a singleton client instance with proper configuration
+let client: SupabaseClient | undefined;
+
+export function getSupabaseBrowserClient() {
+  // Return existing client if already created (singleton pattern for browser)
+  if (client) {
+    return client;
+  }
+
+  // Create new client with proper SSR configuration
+  client = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      flowType: "pkce",
     },
-  },
-  global: {
-    headers: {
-      'apikey': supabaseAnonKey,
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
     },
-  },
-});
+    global: {
+      headers: {
+        'apikey': supabaseAnonKey,
+      },
+    },
+  });
+
+  return client;
+}
+
+// Create client immediately if in browser, otherwise create on first access
+export const supabase = typeof window !== 'undefined' 
+  ? getSupabaseBrowserClient() 
+  : new Proxy({} as SupabaseClient, {
+      get() {
+        if (typeof window === 'undefined') {
+          throw new Error('Supabase client is not available on the server. Use createServerSupabaseClient instead.');
+        }
+        return getSupabaseBrowserClient();
+      }
+    });
 
 // Keep all your Database types exactly as they are
 export type Database = {

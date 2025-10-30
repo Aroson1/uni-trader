@@ -40,7 +40,7 @@ export function getUserAvatar(username: string, customAvatar?: string | null): s
   // Otherwise, generate avatar based on username
   const avatarNumber = getAvatarNumber(username);
   const paddedNumber = avatarNumber.toString().padStart(2, '0'); // 1 -> "01", 28 -> "28"
-  console.log(`Generated Avatar: ${username} → /avatars/avt-${paddedNumber}.jpg`);
+  // console.log(`Generated Avatar: ${username} → /avatars/avt-${paddedNumber}.jpg`);
 
   return `/avatars/avt-${paddedNumber}.jpg`;
 }

@@ -11,14 +11,16 @@ export async function middleware(request: NextRequest) {
     '/api/nfts', // Public NFT listing
     '/api/orders', // Public order listing
     '/api/qr', // QR code generation
-
   ];
   
   const isPublicApiRoute = publicApiRoutes.some(route => 
     pathname.startsWith(route) && request.method === 'GET'
   );
   
-  if (isPublicApiRoute) {
+  // Skip auth check for auth callback route - it handles its own auth
+  const isAuthCallback = pathname === '/api/auth/callback' || pathname === '/auth/callback';
+  
+  if (isPublicApiRoute || isAuthCallback) {
     return NextResponse.next();
   }
 
@@ -57,32 +59,13 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Get session and trigger refresh if needed
+  // Get user and trigger refresh if needed
   // This will write updated cookies to the response if session is refreshed
-  let session = null;
+  // Using getUser() instead of getSession() as recommended by Supabase docs
+  // getUser() validates the JWT on the server, while getSession() doesn't
   let user = null;
   
-  try {
-    console.log(`\x1b[36m[Middleware] Processing ${pathname} - Getting session...\x1b[0m`);
-    
-    const {
-      data: { session: authSession },
-      error: sessionError
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      console.error(`\x1b[31m[Middleware] Session error on ${pathname}:\x1b[0m`, sessionError);
-    } else {
-      session = authSession;
-      user = authSession?.user || null;
-      console.log(`\x1b[32m[Middleware] Session status on ${pathname}: ${user ? 'authenticated' : 'anonymous'}\x1b[0m`);
-      DEBUG_MODE ? console.log('\x1b[32m[Middleware] User info:\x1b[0m', user) : null;
-    }
-  } catch (error) {
-    console.error(`\x1b[31m[Middleware] Auth error on ${pathname}:\x1b[0m`, error);
-  }
-
-  // Define protected routes
+  // Define protected routes early so we can use them in error handling
   const protectedRoutes = [
     "/profile",
     "/wallet", 
@@ -96,6 +79,30 @@ export async function middleware(request: NextRequest) {
     "/api/upload",
     "/api/nfts/purchase",
   ];
+  
+  try {
+    console.log(`\x1b[36m[Middleware] Processing ${pathname} - Getting user...\x1b[0m`);
+    
+    const {
+      data: { user: authUser },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      // Only log auth errors for protected routes, not public pages
+      const isProtectedPath = protectedRoutes.some((route) => pathname.startsWith(route));
+      
+      if (isProtectedPath || userError.name !== 'AuthSessionMissingError') {
+        console.error(`\x1b[31m[Middleware] User error on ${pathname}:\x1b[0m`, userError);
+      }
+    } else {
+      user = authUser;
+      console.log(`\x1b[32m[Middleware] Auth status on ${pathname}: ${user ? 'authenticated' : 'anonymous'}\x1b[0m`);
+      DEBUG_MODE ? console.log('\x1b[32m[Middleware] User info:\x1b[0m', user) : null;
+    }
+  } catch (error) {
+    console.error(`\x1b[31m[Middleware] Auth error on ${pathname}:\x1b[0m`, error);
+  }
   
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
