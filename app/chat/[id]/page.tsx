@@ -29,6 +29,7 @@ interface Message {
   content: string;
   read: boolean;
   created_at: string;
+  moderating?: boolean; // Temporary flag for messages being moderated
 }
 
 interface Conversation {
@@ -88,32 +89,12 @@ export default function ChatConversationPage({
   }, [isReady, user, profile, params.id]);
 
   useEffect(() => {
-    // Scroll to bottom on initial load or when receiving new messages from others
-    if (messages.length > 0) {
-      if (isInitialLoad) {
-        // Always scroll on initial load
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        setIsInitialLoad(false);
-      } else if (currentUser) {
-        // Only scroll when receiving new messages FROM OTHER USERS
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage.sender_id !== currentUser.id) {
-          // Check if user is near the bottom of the chat
-          const chatContainer = messagesEndRef.current?.parentElement;
-          if (chatContainer) {
-            const isNearBottom =
-              chatContainer.scrollTop + chatContainer.clientHeight >=
-              chatContainer.scrollHeight - 100; // 100px threshold
-
-            if (isNearBottom) {
-              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }
-          }
-        }
-        // Don't auto-scroll for your own messages - let user stay where they are
-      }
+    // Only scroll to bottom on initial load
+    if (messages.length > 0 && isInitialLoad) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setIsInitialLoad(false);
     }
-  }, [messages, currentUser, isInitialLoad]);
+  }, [messages, isInitialLoad]);
 
   const loadConversationData = async (
     userId: string,
@@ -276,10 +257,20 @@ export default function ChatConversationPage({
     try {
       console.log("🔍 [CHAT] Starting message moderation...");
       
-      // Show moderation progress toast
-      moderationToastRef.current = toast.loading("🔍 Checking message content...", {
-        description: "Ensuring your message meets community guidelines"
-      });
+      // Optimistically add the message to UI with "moderating" status
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        conversation_id: conversation.id,
+        sender_id: currentUser.id,
+        content: newMessage.trim(),
+        read: false,
+        created_at: new Date().toISOString(),
+        moderating: true, // Flag to show it's being checked
+      };
+
+      const messageToSend = newMessage.trim();
+      setNewMessage("");
+      setMessages((prev) => [...prev, tempMessage]);
 
       // First, moderate the message
       const moderationResponse = await fetch("/api/chat/moderate", {
@@ -288,7 +279,7 @@ export default function ChatConversationPage({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: newMessage.trim(),
+          message: messageToSend,
           conversation_id: conversation.id,
         }),
       });
@@ -303,25 +294,26 @@ export default function ChatConversationPage({
           "❌ [CHAT] Moderation service error:",
           moderationResponse.status
         );
-        if (moderationToastRef.current) {
-          toast.dismiss(moderationToastRef.current);
-        }
+        // Remove temp message and show error
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+        toast.error("Failed to check message");
         setModerating(false);
+        setSending(false);
         throw new Error("Moderation service error");
       }
 
       const moderationResult = await moderationResponse.json();
       console.log("🔍 [CHAT] Moderation result:", moderationResult);
       
-      // Moderation complete - dismiss loading toast
-      if (moderationToastRef.current) {
-        toast.dismiss(moderationToastRef.current);
-      }
+      // Moderation complete
       setModerating(false);
 
       // Handle moderation results
       if (!moderationResult.allowed) {
         console.log("🚫 [CHAT] Message blocked by moderation");
+        // Remove temp message
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+        
         // Message is blocked
         if (moderationResult.action === "STOP") {
           toast.error(`Message blocked: ${moderationResult.reason}`);
@@ -338,15 +330,11 @@ export default function ChatConversationPage({
         } else {
           toast.error(`Message blocked: ${moderationResult.reason}`);
         }
-        if (moderationToastRef.current) {
-          toast.dismiss(moderationToastRef.current);
-        }
         setSending(false);
-        setModerating(false);
         return;
       }
 
-      // Show warning if applicable (this shouldn't happen with new logic, but keeping for safety)
+      // Show warning if applicable
       if (moderationResult.action === "WARN") {
         console.log("⚠️ [CHAT] Message warned by moderation");
         toast.warning(
@@ -356,21 +344,12 @@ export default function ChatConversationPage({
         console.log("✅ [CHAT] Message allowed by moderation");
       }
 
-      // Message is allowed, proceed with sending
-      const messageToSend = newMessage.trim();
-      setNewMessage("");
-
-      // Optimistic update - add message immediately to UI
-      const tempMessage = {
-        id: `temp-${Date.now()}`,
-        conversation_id: conversation.id,
-        sender_id: currentUser.id,
-        content: messageToSend,
-        read: false,
-        created_at: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, tempMessage]);
+      // Message is allowed, update the temp message to remove moderating flag
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempMessage.id ? { ...msg, moderating: false } : msg
+        )
+      );
 
       // Send message via API
       const response = await fetch("/api/chat/messages", {
@@ -394,9 +373,6 @@ export default function ChatConversationPage({
     } catch (error: any) {
       // Remove the temporary message on error
       setMessages((prev) => prev.filter((msg) => msg.id.startsWith("temp-")));
-      if (moderationToastRef.current) {
-        toast.dismiss(moderationToastRef.current);
-      }
       toast.error("Failed to send message");
       console.error("Error sending message:", error);
     } finally {
@@ -492,6 +468,7 @@ export default function ChatConversationPage({
                 <div className="h-96 overflow-y-auto p-4 space-y-4">
                   {messages.map((message) => {
                     const isOwn = message.sender_id === currentUser?.id;
+                    const isModeratingMessage = message.moderating;
 
                     return (
                       <div
@@ -500,28 +477,51 @@ export default function ChatConversationPage({
                           isOwn ? "justify-end" : "justify-start"
                         }`}
                       >
-                        <div
-                          className={`max-w-xs lg:max-w-md ${
-                            isOwn
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          } rounded-lg p-3`}
-                        >
-                          <p className="text-sm">{message.content}</p>
-                          <p
-                            className={`text-xs mt-1 ${
+                        {isModeratingMessage ? (
+                          // Show moderation indicator inline
+                          <div className="max-w-xs lg:max-w-md bg-blue-500/90 text-white rounded-lg p-3 relative overflow-hidden">
+                            <div className="relative z-10">
+                              <p className="text-sm">{message.content}</p>
+                              <div className="flex items-center gap-2 mt-2 text-xs text-blue-100">
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                  className="w-3 h-3 border-2 border-blue-100 border-t-transparent rounded-full"
+                                />
+                                <span>Checking content...</span>
+                              </div>
+                            </div>
+                            {/* Animated shimmer effect */}
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                              animate={{ x: ['-100%', '100%'] }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            className={`max-w-xs lg:max-w-md ${
                               isOwn
-                                ? "text-primary-foreground/70"
-                                : "text-muted-foreground"
-                            }`}
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            } rounded-lg p-3`}
                           >
-                            {formatDistance(
-                              new Date(message.created_at),
-                              new Date(),
-                              { addSuffix: true }
-                            )}
-                          </p>
-                        </div>
+                            <p className="text-sm">{message.content}</p>
+                            <p
+                              className={`text-xs mt-1 ${
+                                isOwn
+                                  ? "text-primary-foreground/70"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {formatDistance(
+                                new Date(message.created_at),
+                                new Date(),
+                                { addSuffix: true }
+                              )}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -533,24 +533,6 @@ export default function ChatConversationPage({
             {/* Message Input */}
             <Card>
               <CardContent className="p-4">
-                {moderating && (
-                  <div className="mb-3 flex justify-end">
-                    <div className="max-w-xs bg-blue-500 rounded-lg p-3">
-                      <SkeletonTheme 
-                        baseColor="rgba(255,255,255,0.2)" 
-                        highlightColor="rgba(255,255,255,0.4)"
-                        borderRadius="0.25rem"
-                      >
-                        <Skeleton height={16} className="mb-1" />
-                        <Skeleton height={16} width="70%" />
-                        <div className="text-xs text-blue-100 mt-1">
-                          Checking content...
-                        </div>
-                      </SkeletonTheme>
-                    </div>
-                  </div>
-                )}
-                
                 <form
                   onSubmit={handleSendMessage}
                   className="flex items-center gap-2"
