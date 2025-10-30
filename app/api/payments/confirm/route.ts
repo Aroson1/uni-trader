@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const { paymentIntentId } = await request.json();
     
     // Get authenticated user
-    const supabase = createServerSupabaseClient();
+    const supabase = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {

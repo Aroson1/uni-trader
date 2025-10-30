@@ -11,18 +11,6 @@ export function Footer() {
       { name: 'Top Sellers', href: '/top-sellers' },
       { name: 'Categories', href: '/categories' },
     ],
-    Community: [
-      { name: 'About', href: '/about' },
-      { name: 'Blog', href: '/blog' },
-      { name: 'Help Center', href: '/support' },
-      { name: 'Community Guidelines', href: '/guidelines' },
-    ],
-    Resources: [
-      { name: 'Docs', href: '/docs' },
-      { name: 'API', href: '/api' },
-      { name: 'Partners', href: '/partners' },
-      { name: 'Careers', href: '/careers' },
-    ],
     Company: [
       { name: 'Privacy Policy', href: '/privacy' },
       { name: 'Terms of Service', href: '/terms' },
@@ -50,7 +38,7 @@ export function Footer() {
               <span className="text-xl font-bold">Unitrader</span>
             </Link>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              The next-generation NFT marketplace for digital art, collectibles, and unique digital assets.
+              The next-generation Item marketplace for digital art, collectibles, and unique digital assets.
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
@@ -91,7 +79,7 @@ export function Footer() {
               © {currentYear} Unitrader. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <span>Built with Next.js & Supabase</span>
+              <span>Built with Blood Sweat and Tears</span>
             </div>
           </div>
         </div>

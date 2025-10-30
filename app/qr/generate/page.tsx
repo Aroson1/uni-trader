@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import QRCode from 'qrcode';
 import { supabase } from '@/lib/supabase';
+import { useRequireAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ interface QRPayload {
 }
 
 export default function QRGeneratePage() {
+  const { user, profile, loading: authLoading, isReady } = useRequireAuth('/qr/generate');
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -74,25 +76,17 @@ export default function QRGeneratePage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      setCurrentUser(profile);
-      loadOrders(user.id);
-    };
-    
-    checkUser();
-  }, [router]);
+    // Wait for auth to be ready and user to be available
+    if (!isReady || !user) return;
+
+    // Use user and profile from auth hook instead of fetching again
+    setCurrentUser(profile || {
+      id: user.id,
+      name: user.email?.split('@')[0] || 'User',
+      email: user.email
+    });
+    loadOrders(user.id);
+  }, [isReady, user, profile]);
 
   const loadOrders = async (userId: string) => {
     setLoading(true);
@@ -290,7 +284,7 @@ export default function QRGeneratePage() {
                         </div>
                         
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">NFT</span>
+                          <span className="text-sm text-muted-foreground">Item</span>
                           <span className="font-medium text-sm">{selectedOrder.nft.title}</span>
                         </div>
                         

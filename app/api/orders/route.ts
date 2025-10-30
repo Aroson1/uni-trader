@@ -83,11 +83,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseServer = createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseServer.auth.getUser();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -109,7 +106,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get NFT details
+    // Get Item details
     const { data: nft, error: nftError } = await supabase
       .from("nfts")
       .select("id, owner_id, price, status")
@@ -117,19 +114,22 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (nftError || !nft) {
-      return NextResponse.json({ error: "NFT not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      );
     }
 
     if (nft.status !== "active") {
       return NextResponse.json(
-        { error: "NFT is not available for purchase" },
+        { error: 'Item is not available for purchase' },
         { status: 400 }
       );
     }
 
     if (nft.owner_id === user.id) {
       return NextResponse.json(
-        { error: "Cannot purchase your own NFT" },
+        { error: 'Cannot purchase your own Item' },
         { status: 400 }
       );
     }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     // For buy orders, check if amount matches price
     if (orderData.type === "buy" && parseFloat(orderData.amount) < nft.price) {
       return NextResponse.json(
-        { error: "Amount is less than NFT price" },
+        { error: 'Amount is less than Item price' },
         { status: 400 }
       );
     }
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
         .eq("id", orderData.nft_id);
 
       if (transferError) {
-        console.error("NFT transfer error:", transferError);
+        console.error('Item transfer error:', transferError);
         // Note: Order is created but transfer failed
       }
     }

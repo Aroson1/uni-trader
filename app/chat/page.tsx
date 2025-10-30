@@ -1,28 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  MessageCircle, 
-  Search, 
-  Plus, 
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
+import { useRequireAuth } from "@/hooks/use-auth";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  MessageCircle,
+  Search,
+  Plus,
   User,
   Clock,
   Circle,
-  Eye
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { formatDistance } from 'date-fns';
+  Eye,
+} from "lucide-react";
+import { toast } from "sonner";
+import { formatDistance } from "date-fns";
+import { getAnonymousDisplayName } from "@/lib/anonymous-chat";
 
 interface Conversation {
   id: string;
@@ -44,85 +45,81 @@ interface Conversation {
 }
 
 export default function ChatPage() {
-  const router = useRouter();
+  const {
+    user,
+    profile,
+    loading: authLoading,
+    isReady,
+  } = useRequireAuth("/chat");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      setCurrentUser(profile);
-      loadConversations(user.id);
-    };
-    
-    checkUser();
-  }, [router]);
+    // Wait for auth to be ready and user to be available
+    if (!isReady || !user) return;
+
+    // Use the user from auth hook instead of fetching again
+    setCurrentUser(profile);
+    loadConversations(user.id);
+  }, [isReady, user, profile]);
 
   const loadConversations = async (userId: string) => {
     setLoading(true);
-    
+
     try {
       const { data: conversationsData, error } = await supabase
-        .from('conversations')
-        .select(`
+        .from("conversations")
+        .select(
+          `
           id,
           participant1_id,
           participant2_id,
           last_message_at,
           created_at
-        `)
+        `
+        )
         .or(`participant1_id.eq.${userId},participant2_id.eq.${userId}`)
-        .order('last_message_at', { ascending: false });
+        .order("last_message_at", { ascending: false });
 
       if (error) throw error;
 
       // Get other participants' info and last messages
       const conversationsWithDetails = await Promise.all(
         (conversationsData || []).map(async (conv) => {
-          const otherUserId = conv.participant1_id === userId 
-            ? conv.participant2_id 
-            : conv.participant1_id;
+          const otherUserId =
+            conv.participant1_id === userId
+              ? conv.participant2_id
+              : conv.participant1_id;
 
           // Get other user's profile
           const { data: otherUser } = await supabase
-            .from('profiles')
-            .select('id, name, avatar_url')
-            .eq('id', otherUserId)
+            .from("profiles")
+            .select("id, name, avatar_url")
+            .eq("id", otherUserId)
             .single();
 
           // Get last message
           const { data: lastMessage } = await supabase
-            .from('messages')
-            .select('content, sender_id, created_at')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false })
+            .from("messages")
+            .select("content, sender_id, created_at")
+            .eq("conversation_id", conv.id)
+            .order("created_at", { ascending: false })
             .limit(1)
             .single();
 
           // Get unread count
           const { count: unreadCount } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', conv.id)
-            .eq('sender_id', otherUserId)
-            .eq('read', false);
+            .from("messages")
+            .select("*", { count: "exact", head: true })
+            .eq("conversation_id", conv.id)
+            .eq("sender_id", otherUserId)
+            .eq("read", false);
 
           return {
             ...conv,
-            otherUser: otherUser || { id: otherUserId, name: 'Unknown User' },
+            otherUser: otherUser || { id: otherUserId, name: "Unknown User" },
             lastMessage: lastMessage || undefined,
             unreadCount: unreadCount || 0,
           };
@@ -130,18 +127,21 @@ export default function ChatPage() {
       );
 
       setConversations(conversationsWithDetails);
-      
     } catch (error: any) {
-      toast.error('Failed to load conversations');
-      console.error('Error loading conversations:', error);
+      toast.error("Failed to load conversations");
+      console.error("Error loading conversations:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.otherUser.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredConversations = conversations.filter((conv) => {
+    const displayName = getAnonymousDisplayName(
+      conv.otherUser,
+      currentUser?.id
+    );
+    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   if (loading) {
     return (
@@ -161,7 +161,7 @@ export default function ChatPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -175,7 +175,7 @@ export default function ChatPage() {
                 Chat with buyers and sellers
               </p>
             </div>
-            
+
             <Button>
               <Plus className="w-4 h-4 mr-2" />
               New Message
@@ -214,22 +214,29 @@ export default function ChatPage() {
                         <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
                           <div className="relative">
                             <Avatar className="h-12 w-12">
-                              <AvatarImage src={conversation.otherUser.avatar_url} />
+                              <AvatarImage
+                                src={conversation.otherUser.avatar_url}
+                              />
                               <AvatarFallback>
                                 <User className="h-6 w-6" />
                               </AvatarFallback>
                             </Avatar>
                             {conversation.unreadCount > 0 && (
                               <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
+                                {conversation.unreadCount > 9
+                                  ? "9+"
+                                  : conversation.unreadCount}
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <h3 className="font-medium truncate">
-                                {conversation.otherUser.name}
+                                {getAnonymousDisplayName(
+                                  conversation.otherUser,
+                                  currentUser?.id
+                                )}
                               </h3>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground">
@@ -241,10 +248,13 @@ export default function ChatPage() {
                                 </span>
                               </div>
                             </div>
-                            
+
                             {conversation.lastMessage ? (
                               <p className="text-sm text-muted-foreground truncate">
-                                {conversation.lastMessage.sender_id === currentUser?.id ? 'You: ' : ''}
+                                {conversation.lastMessage.sender_id ===
+                                currentUser?.id
+                                  ? "You: "
+                                  : ""}
                                 {conversation.lastMessage.content}
                               </p>
                             ) : (
@@ -253,7 +263,7 @@ export default function ChatPage() {
                               </p>
                             )}
                           </div>
-                          
+
                           {conversation.unreadCount > 0 && (
                             <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />
                           )}
@@ -264,7 +274,9 @@ export default function ChatPage() {
                 ) : searchQuery ? (
                   <div className="text-center py-12">
                     <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-medium mb-2">No conversations found</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      No conversations found
+                    </h3>
                     <p className="text-muted-foreground">
                       Try searching with a different name
                     </p>
@@ -272,9 +284,12 @@ export default function ChatPage() {
                 ) : (
                   <div className="text-center py-12">
                     <MessageCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-medium mb-2">No conversations yet</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      No conversations yet
+                    </h3>
                     <p className="text-muted-foreground mb-4">
-                      Start conversations by messaging sellers on NFT detail pages
+                      Start conversations by messaging sellers on Item detail
+                      pages
                     </p>
                     <Link href="/explore">
                       <Button>
@@ -295,14 +310,16 @@ export default function ChatPage() {
                     <div className="flex items-center gap-3">
                       <Eye className="w-8 h-8 text-blue-500" />
                       <div>
-                        <p className="font-medium">Browse NFTs</p>
-                        <p className="text-sm text-muted-foreground">Find items to chat about</p>
+                        <p className="font-medium">Browse Items</p>
+                        <p className="text-sm text-muted-foreground">
+                          Find items to chat about
+                        </p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </Link>
-              
+
               <Link href="/profile">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
@@ -310,21 +327,25 @@ export default function ChatPage() {
                       <User className="w-8 h-8 text-green-500" />
                       <div>
                         <p className="font-medium">My Profile</p>
-                        <p className="text-sm text-muted-foreground">View your activity</p>
+                        <p className="text-sm text-muted-foreground">
+                          View your activity
+                        </p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </Link>
-              
+
               <Link href="/create">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <Plus className="w-8 h-8 text-purple-500" />
                       <div>
-                        <p className="font-medium">Create NFT</p>
-                        <p className="text-sm text-muted-foreground">List your items</p>
+                        <p className="font-medium">Create Item</p>
+                        <p className="text-sm text-muted-foreground">
+                          List your items
+                        </p>
                       </div>
                     </div>
                   </CardContent>

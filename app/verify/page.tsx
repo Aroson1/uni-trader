@@ -314,7 +314,7 @@ export default function VerifyPage() {
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold mb-4">QR Code Verification</h1>
               <p className="text-muted-foreground text-lg">
-                Verify the authenticity of your NFT order
+                Verify the authenticity of your Item order
               </p>
             </div>
 
@@ -351,7 +351,7 @@ export default function VerifyPage() {
                         <li>• Order details verified against database</li>
                         <li>• QR code timestamp is valid</li>
                         <li>• Buyer and seller information confirmed</li>
-                        <li>• NFT ownership verified</li>
+                        <li>• Item ownership verified</li>
                       </ul>
                     </div>
                   </div>
@@ -390,7 +390,7 @@ export default function VerifyPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium mb-3">NFT Details</h4>
+                      <h4 className="font-medium mb-3">Item Details</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Title</span>
@@ -486,7 +486,7 @@ export default function VerifyPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-muted-foreground">
-                    If you are the buyer and have received the NFT, click the button below to 
+                    If you are the buyer and have received the Item, click the button below to 
                     complete the payment to the seller.
                   </p>
                   

@@ -51,6 +51,16 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
       document.cookie = cookie;
     },
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+  global: {
+    headers: {
+      'apikey': supabaseAnonKey,
+    },
+  },
 });
 
 // Keep all your Database types exactly as they are
@@ -128,6 +138,7 @@ export type Database = {
           blockchain: string;
           token_id: string | null;
           contract_address: string | null;
+          ar_link: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -157,6 +168,7 @@ export type Database = {
           blockchain?: string;
           token_id?: string | null;
           contract_address?: string | null;
+          ar_link?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -186,6 +198,7 @@ export type Database = {
           blockchain?: string;
           token_id?: string | null;
           contract_address?: string | null;
+          ar_link?: string | null;
           created_at?: string;
           updated_at?: string;
         };

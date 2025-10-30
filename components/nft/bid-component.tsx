@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getUserAvatar } from '@/lib/avatar-generator';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
@@ -151,14 +152,14 @@ export function BidComponent({
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('NFT purchased successfully!');
+        toast.success('Item purchased successfully!');
         onPurchase?.();
       } else {
-        toast.error(data.error || 'Failed to purchase NFT');
+        toast.error(data.error || 'Failed to purchase Item');
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      toast.error('Failed to purchase NFT');
+      toast.error('Failed to purchase Item');
     } finally {
       setPurchasing(false);
     }
@@ -320,7 +321,7 @@ export function BidComponent({
               <div key={bid.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar className="w-6 h-6">
-                    <AvatarImage src={bid.bidder.avatar_url || undefined} />
+                    <AvatarImage src={getUserAvatar(bid.bidder.name, bid.bidder.avatar_url)} />
                     <AvatarFallback className="text-xs">
                       {bid.bidder.name.charAt(0)}
                     </AvatarFallback>

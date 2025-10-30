@@ -1,97 +1,125 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+let DEBUG_MODE = false;
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Skip middleware for public API routes that don't need auth
+  const publicApiRoutes = [
+    '/api/nfts', // Public NFT listing
+    '/api/orders', // Public order listing
+    '/api/qr', // QR code generation
+
+  ];
+  
+  const isPublicApiRoute = publicApiRoutes.some(route => 
+    pathname.startsWith(route) && request.method === 'GET'
+  );
+  
+  if (isPublicApiRoute) {
+    return NextResponse.next();
+  }
+
+  // Create response that we'll modify with cookies
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
+  // Create Supabase client with proper cookie handling
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value;
+          let x = request.cookies.get(name)?.value;
+          DEBUG_MODE ? console.log(`\x1b[34m[Middleware] Get cookie: ${name}=${x}\x1b[0m`) : null;
+          return x;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Update the request cookies
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          // Create a new response with updated cookies
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          // Set cookies on the response
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+          // Update both request and response cookies
+          console.log(`\x1b[34m[Middleware] Set cookie: ${name}=${value}\x1b[0m`);
+          request.cookies.set({ name, value, ...options });
+          response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          // Update the request cookies
-          request.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
-          // Create a new response with updated cookies
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          // Remove cookies from the response
-          response.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
+          // Remove from both request and response cookies
+          console.log(`\x1b[34m[Middleware] Remove cookie: ${name}\x1b[0m`);
+          const removeOptions = { ...options, maxAge: 0 };
+          request.cookies.set({ name, value: "", ...removeOptions });
+          response.cookies.set({ name, value: "", ...removeOptions });
         },
       },
     }
   );
 
-  // IMPORTANT: Use getSession() instead of getUser()
-  // getSession() will automatically refresh the session if needed
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Get session and trigger refresh if needed
+  // This will write updated cookies to the response if session is refreshed
+  let session = null;
+  let user = null;
+  
+  try {
+    console.log(`\x1b[36m[Middleware] Processing ${pathname} - Getting session...\x1b[0m`);
+    
+    const {
+      data: { session: authSession },
+      error: sessionError
+    } = await supabase.auth.getSession();
 
-  const user = session?.user;
+    if (sessionError) {
+      console.error(`\x1b[31m[Middleware] Session error on ${pathname}:\x1b[0m`, sessionError);
+    } else {
+      session = authSession;
+      user = authSession?.user || null;
+      console.log(`\x1b[32m[Middleware] Session status on ${pathname}: ${user ? 'authenticated' : 'anonymous'}\x1b[0m`);
+      DEBUG_MODE ? console.log('\x1b[32m[Middleware] User info:\x1b[0m', user) : null;
+    }
+  } catch (error) {
+    console.error(`\x1b[31m[Middleware] Auth error on ${pathname}:\x1b[0m`, error);
+  }
 
-  // Protected routes that require authentication
+  // Define protected routes
   const protectedRoutes = [
     "/profile",
-    "/wallet",
+    "/wallet", 
     "/orders",
     "/admin",
     "/create",
+    "/chat",
+    "/api/chat",
+    "/api/bids", 
+    "/api/payments",
+    "/api/upload",
+    "/api/nfts/purchase",
   ];
+  
   const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
+    pathname.startsWith(route)
   );
 
-  // Redirect to login if trying to access protected route without auth
+  // Redirect to login if accessing protected route without authentication
   if (isProtectedRoute && !user) {
+    console.log(`\x1b[33m[Middleware] Redirecting to login from ${pathname}\x1b[0m`);
     const redirectUrl = new URL("/auth/login", request.url);
-    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
+    redirectUrl.searchParams.set("redirectedFrom", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect authenticated users away from login page
-  if (user && request.nextUrl.pathname === "/auth/login") {
+  if (user && pathname === "/auth/login") {
     const redirectedFrom = request.nextUrl.searchParams.get("redirectedFrom");
     const redirectTo = redirectedFrom || "/";
+    console.log(`\x1b[35m[Middleware] Redirecting authenticated user from login to ${redirectTo}\x1b[0m`);
     return NextResponse.redirect(new URL(redirectTo, request.url));
+  }
+
+  // Add session info to response headers for debugging (optional)
+  if (user) {
+    response.headers.set('x-user-id', user.id);
   }
 
   return response;
@@ -99,6 +127,14 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)  
+     * - favicon.ico (favicon file)
+     * - public assets (images, etc.)
+     * This ensures middleware runs on all pages and API routes
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

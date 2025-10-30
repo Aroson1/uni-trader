@@ -21,7 +21,7 @@ export async function GET(
 
     if (error || !nft) {
       return NextResponse.json(
-        { error: 'NFT not found' },
+        { error: 'Item not found' },
         { status: 404 }
       );
     }
@@ -35,7 +35,7 @@ export async function GET(
     return NextResponse.json({ nft });
 
   } catch (error: any) {
-    console.error('NFT fetch error:', error);
+    console.error('Item fetch error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -48,7 +48,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {
@@ -58,7 +58,7 @@ export async function PUT(
       );
     }
 
-    // Check if user owns the NFT
+    // Check if user owns the Item
     const { data: nft, error: nftError } = await supabase
       .from('nfts')
       .select('owner_id')
@@ -67,21 +67,21 @@ export async function PUT(
 
     if (nftError || !nft) {
       return NextResponse.json(
-        { error: 'NFT not found' },
+        { error: 'Item not found' },
         { status: 404 }
       );
     }
 
     if (nft.owner_id !== user.id) {
       return NextResponse.json(
-        { error: 'Not authorized to update this NFT' },
+        { error: 'Not authorized to update this Item' },
         { status: 403 }
       );
     }
 
     const updateData = await request.json();
 
-    // Update NFT
+    // Update Item
     const { data: updatedNft, error: updateError } = await supabase
       .from('nfts')
       .update({
@@ -97,9 +97,9 @@ export async function PUT(
       .single();
 
     if (updateError) {
-      console.error('NFT update error:', updateError);
+      console.error('Item update error:', updateError);
       return NextResponse.json(
-        { error: 'Failed to update NFT' },
+        { error: 'Failed to update Item' },
         { status: 500 }
       );
     }
@@ -107,7 +107,7 @@ export async function PUT(
     return NextResponse.json({ nft: updatedNft });
 
   } catch (error: any) {
-    console.error('NFT update API error:', error);
+    console.error('Item update API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -120,7 +120,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {
@@ -130,7 +130,7 @@ export async function DELETE(
       );
     }
 
-    // Check if user owns the NFT
+    // Check if user owns the Item
     const { data: nft, error: nftError } = await supabase
       .from('nfts')
       .select('owner_id, creator_id')
@@ -139,14 +139,14 @@ export async function DELETE(
 
     if (nftError || !nft) {
       return NextResponse.json(
-        { error: 'NFT not found' },
+        { error: 'Item not found' },
         { status: 404 }
       );
     }
 
     if (nft.owner_id !== user.id && nft.creator_id !== user.id) {
       return NextResponse.json(
-        { error: 'Not authorized to delete this NFT' },
+        { error: 'Not authorized to delete this Item' },
         { status: 403 }
       );
     }
@@ -161,17 +161,17 @@ export async function DELETE(
       .eq('id', params.id);
 
     if (deleteError) {
-      console.error('NFT delete error:', deleteError);
+      console.error('Item delete error:', deleteError);
       return NextResponse.json(
-        { error: 'Failed to delete NFT' },
+        { error: 'Failed to delete Item' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ message: 'NFT deleted successfully' });
+    return NextResponse.json({ message: 'Item deleted successfully' });
 
   } catch (error: any) {
-    console.error('NFT delete API error:', error);
+    console.error('Item delete API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

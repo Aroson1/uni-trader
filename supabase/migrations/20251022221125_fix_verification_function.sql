@@ -29,6 +29,11 @@ BEGIN
   SET status = 'completed', verified_at = NOW()
   WHERE id = v_order.id;
   
+  -- Ensure NFT status is marked as sold (in case it wasn't updated during purchase)
+  UPDATE nfts 
+  SET status = 'sold'
+  WHERE id = v_order.nft_id;
+  
   RETURN QUERY SELECT TRUE, 'Order verified and payment completed'::TEXT, v_order.id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

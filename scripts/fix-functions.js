@@ -1,5 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+const { createClient } = require("@supabase/supabase-js");
+require("dotenv").config({ path: ".env.local" });
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -7,11 +7,13 @@ const supabase = createClient(
 );
 
 async function fixVerificationFunction() {
-  console.log('Fixing verification function...');
-  
-  const { data, error } = await supabase.rpc('exec', {
+  console.log(
+    "Fixing verification function to ensure NFT status is updated..."
+  );
+
+  const { data, error } = await supabase.rpc("exec", {
     sql: `
--- Fix ambiguous column reference in verification functions
+-- Update the verify_order_payment function to ensure NFT status is marked as sold
 CREATE OR REPLACE FUNCTION verify_order_payment(
   p_verification_code TEXT
 )
@@ -39,6 +41,11 @@ BEGIN
   UPDATE orders 
   SET status = 'completed', verified_at = NOW()
   WHERE id = v_order.id;
+  
+  -- Ensure NFT status is marked as sold (in case it wasn't updated during purchase)
+  UPDATE nfts 
+  SET status = 'sold'
+  WHERE id = v_order.nft_id;
   
   RETURN QUERY SELECT TRUE, 'Order verified and payment completed'::TEXT, v_order.id;
 END;
@@ -70,13 +77,13 @@ BEGIN
   RETURN QUERY SELECT v_order_id, v_verification_code;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-    `
+    `,
   });
 
   if (error) {
-    console.error('Error fixing function:', error);
+    console.error("Error fixing function:", error);
   } else {
-    console.log('Functions fixed successfully!');
+    console.log("Functions fixed successfully!");
   }
 }
 

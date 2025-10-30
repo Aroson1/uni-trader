@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuthStore, useThemeStore } from "@/lib/store";
+import { getUserAvatar } from "@/lib/avatar-generator";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -33,12 +34,23 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Use profile name if available, otherwise fallback to user email
+  const displayName = profile?.name || user?.email?.split('@')[0] || "User";
+  const displayAvatar = profile?.avatar_url || null;
+
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Explore", href: "/explore" },
-    { name: "Activity", href: "/activity" },
-    { name: "Community", href: "/community" },
+    { name: "Sell Item", href: "/create" },
   ];
+
+  if (!user) {
+    console.log("User not logged in - showing limited header");
+  }
+  else{
+    console.log("User logged in - showing full header for user:", user);
+    console.log("Profile data:", profile);
+  }
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/50">
@@ -94,15 +106,6 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full relative"
-                >
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
                   className="rounded-full hidden sm:flex"
                   onClick={toggleTheme}
                 >
@@ -117,19 +120,13 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-3 px-3 py-2 rounded-xl glass hover:bg-muted transition-all">
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={profile?.avatar_url || undefined} />
+                        <AvatarImage src={getUserAvatar(displayName, displayAvatar)} />
                         <AvatarFallback>
-                          {authLoading
-                            ? "..."
-                            : profile?.name?.charAt(0) || "U"}
+                          {displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <span className="hidden sm:block text-sm font-medium">
-                        {authLoading ? (
-                          <span className="inline-block w-16 h-4 bg-muted animate-pulse rounded"></span>
-                        ) : (
-                          profile?.name || "User"
-                        )}
+                        {displayName}
                       </span>
                     </button>
                   </DropdownMenuTrigger>

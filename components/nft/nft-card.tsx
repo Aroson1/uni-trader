@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Eye, Clock } from 'lucide-react';
+import { Heart, Eye, Clock, View } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getUserAvatar } from '@/lib/avatar-generator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -17,6 +18,7 @@ interface NFTCardProps {
   views: number;
   sale_type: 'fixed' | 'auction' | 'bid';
   auction_end_time?: string | null;
+  ar_link?: string | null;
   owner?: {
     id: string;
     name: string;
@@ -39,6 +41,7 @@ export function NFTCard({
   views,
   sale_type,
   auction_end_time,
+  ar_link,
   owner,
   creator,
   status = 'available',
@@ -96,6 +99,21 @@ export function NFTCard({
             </div>
           )}
 
+          {/* AR Link Icon */}
+          {ar_link && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(ar_link, '_blank');
+              }}
+              className="absolute top-3 left-3 bg-black/50 hover:bg-black/70 rounded-full p-2 transition-all duration-200 group/ar"
+              title="View in AR"
+            >
+              <View className="w-4 h-4 text-white group-hover/ar:text-blue-400 transition-colors" />
+            </button>
+          )}
+
           <button
             onClick={handleLike}
             className="absolute top-3 right-3 like-button"
@@ -139,7 +157,7 @@ export function NFTCard({
             {creator && (
               <div className="flex items-center gap-2">
                 <Avatar className="w-6 h-6">
-                  <AvatarImage src={creator.avatar_url || undefined} />
+                  <AvatarImage src={getUserAvatar(creator.name, creator.avatar_url)} />
                   <AvatarFallback className="text-xs">
                     {creator.name.charAt(0)}
                   </AvatarFallback>
@@ -156,7 +174,7 @@ export function NFTCard({
             {owner && (
               <div className="flex items-center gap-2">
                 <Avatar className="w-6 h-6">
-                  <AvatarImage src={owner.avatar_url || undefined} />
+                  <AvatarImage src={getUserAvatar(owner.name, owner.avatar_url)} />
                   <AvatarFallback className="text-xs">
                     {owner.name.charAt(0)}
                   </AvatarFallback>
@@ -176,7 +194,7 @@ export function NFTCard({
               <p className="text-xs text-muted-foreground mb-1">
                 {sale_type === 'auction' ? 'Current Bid' : 'Price'}
               </p>
-              <p className="font-bold text-lg">{price} ETH</p>
+              <p className="font-bold text-lg">{price} KFC</p>
             </div>
 
             <Button className="btn-primary" size="sm">

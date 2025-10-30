@@ -239,4 +239,33 @@
       box-shadow: 0 0 20px rgba(118, 75, 162, 0.8);
     }
   }
+
+  /* Explore Page Improvements */
+  .category-chip {
+    @apply transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+
+  .category-chip:hover {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  }
+
+  .status-filter-chip {
+    @apply transition-all duration-200 hover:scale-105 active:scale-95 border;
+  }
+
+  .status-filter-chip:hover {
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  }
+
+  .filter-section {
+    @apply backdrop-blur-sm bg-background/70 rounded-xl p-4 border border-border/50;
+  }
+
+  .search-enhanced {
+    @apply transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50;
+  }
+
+  .search-enhanced:focus-within {
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+  }
 }

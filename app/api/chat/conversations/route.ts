@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const {
       data: { user },
       error: authError,
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const {
       data: { user },
       error: authError,

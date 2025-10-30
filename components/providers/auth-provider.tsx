@@ -12,13 +12,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
-        // Get initial session
+        // Get initial session - use getSession for proper token validation
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
           console.error("❌ Auth initialization error:", error.message);
-          setUser(null);
-          useAuthStore.setState({ profile: null });
+          if (mounted) {
+            setUser(null);
+            useAuthStore.setState({ profile: null });
+          }
           return;
         }
 
@@ -37,8 +39,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("❌ Auth init error:", error);
-        setUser(null);
-        useAuthStore.setState({ profile: null });
+        if (mounted) {
+          setUser(null);
+          useAuthStore.setState({ profile: null });
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -46,6 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Set initial loading state
+    setLoading(true);
     initAuth();
 
     // Listen for auth changes (sign in, sign out, token refresh)

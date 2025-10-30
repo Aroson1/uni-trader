@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const { data: nfts, error, count } = await query;
 
     if (error) {
-      console.error('NFT fetch error:', error);
+      console.error('Item fetch error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch NFTs' },
         { status: 500 }
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('NFT API error:', error);
+    console.error('Item API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseServer = createServerSupabaseClient();
+    const supabaseServer = createServerSupabaseClient({ throwOnCookieWrite: false });
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create NFT
+    // Create Item
     const { data: nft, error } = await supabase
       .from('nfts')
       .insert({
@@ -128,9 +128,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('NFT creation error:', error);
+      console.error('Item creation error:', error);
       return NextResponse.json(
-        { error: 'Failed to create NFT' },
+        { error: 'Failed to create Item' },
         { status: 500 }
       );
     }
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ nft }, { status: 201 });
 
   } catch (error: any) {
-    console.error('NFT creation API error:', error);
+    console.error('Item creation API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
