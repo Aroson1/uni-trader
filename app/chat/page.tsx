@@ -146,7 +146,7 @@ export default function ChatPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <MessageCircle className="w-8 h-8 animate-pulse mx-auto mb-4" />
@@ -160,7 +160,7 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
 
       <main className="container mx-auto px-4 py-8">
         <motion.div

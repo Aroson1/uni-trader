@@ -204,7 +204,7 @@ export default function NewChatPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <div className="animate-pulse">
@@ -220,7 +220,7 @@ export default function NewChatPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuthStore, useThemeStore } from "@/lib/store";
 import { getUserAvatar } from "@/lib/avatar-generator";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import {
   Search,
   Wallet,
@@ -53,8 +54,15 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center">
-                <span className="text-white font-bold text-xl">U</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center p-1.5">
+                <div className="relative w-full h-full">
+                  <Image
+                    src="/logo.svg"
+                    alt="Unitrader"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               </div>
               <span className="text-xl font-bold hidden sm:block">
                 Unitrader

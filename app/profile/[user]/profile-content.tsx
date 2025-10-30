@@ -321,7 +321,7 @@ export function ProfileContent({ user }: ProfileContentProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
 
       <main className="container mx-auto px-4">
         {/* Banner Section with Blurred Background Overlay */}

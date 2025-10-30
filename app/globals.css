@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&family=Rubik:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&family=Rubik:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -267,5 +267,24 @@
 
   .search-enhanced:focus-within {
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+  }
+
+  /* Page Transition Styles */
+  .page-transition-wrapper {
+    @apply w-full min-h-screen;
+  }
+}
+
+/* Smooth scrolling and performance optimizations */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

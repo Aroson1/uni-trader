@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 export function NFTDetailsSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">

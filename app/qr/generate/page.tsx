@@ -210,7 +210,7 @@ export default function QRGeneratePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
@@ -224,7 +224,7 @@ export default function QRGeneratePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       
       <main className="container mx-auto px-4 py-8">
         <motion.div

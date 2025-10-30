@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { CornerNavbar } from '@/components/layout/corner-navbar';
 
 export const metadata: Metadata = {
   title: 'Unitrader - Next-Generation Item Marketplace',
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <AuthProvider>
+            <CornerNavbar />
             {children}
             <Toaster />
           </AuthProvider>

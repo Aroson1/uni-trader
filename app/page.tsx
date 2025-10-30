@@ -158,7 +158,7 @@ export default function HomePage() {
   };
   return (
     <div className="min-h-screen">
-      <Header />
+      {/* <Header /> */}
 
       <section className="relative  overflow-hidden">
         {/* <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg')] bg-cover bg-center opacity-5"></div> */}

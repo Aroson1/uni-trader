@@ -316,7 +316,7 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
+      {/* <Header /> */}
 
       <div className="hero-gradient py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

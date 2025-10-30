@@ -408,7 +408,7 @@ export default function ChatConversationPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p>Loading conversation...</p>
@@ -422,7 +422,7 @@ export default function ChatConversationPage({
   if (!conversation) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p>Conversation not found</p>
@@ -438,7 +438,7 @@ export default function ChatConversationPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
 
       <main className="container mx-auto px-4 py-8">
         <motion.div

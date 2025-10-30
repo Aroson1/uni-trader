@@ -123,7 +123,7 @@ export default function RankingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
 
       <main className="container mx-auto px-4 py-8 lg:py-12 max-w-7xl">
         {/* Header Section */}

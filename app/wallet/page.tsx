@@ -219,7 +219,7 @@ export default function WalletPage() {
   if (!isReady || loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
@@ -233,7 +233,7 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Twitter, Send, Youtube, Github } from 'lucide-react';
 
 export function Footer() {
@@ -32,8 +33,15 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center">
-                <span className="text-white font-bold text-xl">U</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center p-1.5">
+                <div className="relative w-full h-full">
+                  <Image
+                    src="/logo.svg"
+                    alt="Unitrader"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               </div>
               <span className="text-xl font-bold">Unitrader</span>
             </Link>
